@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String                  @id @default(uuid())
+  email            String                  @unique
+  passwordHash     String
+  displayName      String?
+  createdAt        DateTime                @default(now())
+  visits           Visit[]
+  reviews          Review[]
+  notificationPref NotificationPreference?
+}
+
+model Cinema {
+  id        String  @id @default(uuid())
+  name      String
+  latitude  Float
+  longitude Float
+  radius    Int     @default(100)
+  address   String?
+  visits    Visit[]
+}
+
+model Visit {
+  id                  String   @id @default(uuid())
+  userId              String
+  cinemaId            String
+  entryTime           DateTime
+  exitTime            DateTime?
+  dwellMinutes        Int?
+  locationConfidence  Float
+  qualificationState  String   @default("pending")
+  promptState         String   @default("pending")
+  clientEventId       String   @unique
+  createdAt           DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  cinema  Cinema   @relation(fields: [cinemaId], references: [id])
+  reviews Review[]
+
+  @@index([userId, cinemaId])
+  @@index([userId, createdAt])
+}
+
+model Movie {
+  id       String   @id @default(uuid())
+  title    String
+  year     Int?
+  language String?
+  format   String?
+  reviews  Review[]
+
+  @@index([title])
+}
+
+model Review {
+  id              String    @id @default(uuid())
+  visitId         String
+  movieId         String?
+  rawTitle        String?
+  userId          String
+  rating          Int
+  reviewText      String?
+  spoilerFlag     Boolean   @default(false)
+  matchConfidence Float?
+  selectionSource String
+  clientEventId   String    @unique
+  createdAt       DateTime  @default(now())
+  editedAt        DateTime?
+
+  visit Visit  @relation(fields: [visitId], references: [id])
+  movie Movie? @relation(fields: [movieId], references: [id])
+  user  User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, visitId, movieId])
+  @@index([userId, createdAt])
+  @@index([movieId])
+}
+
+model SyncEvent {
+  id               String    @id @default(uuid())
+  clientEventId    String    @unique
+  entityType       String
+  syncStatus       String    @default("pending")
+  retryCount       Int       @default(0)
+  lastAttemptAt    DateTime?
+  serverReceivedAt DateTime?
+  payload          Json
+}
+
+model NotificationPreference {
+  userId                 String   @id
+  reviewUpdateOptIn      Boolean  @default(true)
+  digestMode             String   @default("immediate")
+  quietHoursStart        String?
+  quietHoursEnd          String?
+  lastNotificationSentAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+}

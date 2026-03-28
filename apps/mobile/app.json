@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "CineReview",
+    "slug": "cinereview",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "cinereview",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cinereview.app",
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "CineReview uses your location to detect cinema visits and suggest movies for review.",
+        "NSLocationWhenInUseUsageDescription": "CineReview uses your location to find nearby cinemas.",
+        "NSLocationAlwaysUsageDescription": "CineReview monitors cinema visits in the background to prompt you for reviews.",
+        "UIBackgroundModes": ["location", "fetch"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a2e"
+      },
+      "package": "com.cinereview.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "CineReview uses your location to detect cinema visits and prompt reviews.",
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#e94560"
+        }
+      ]
+    ]
+  }
+}

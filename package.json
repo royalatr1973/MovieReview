@@ -1,0 +1,15 @@
+{
+  "name": "moviereview",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "server:dev": "npm run dev --workspace=apps/server",
+    "mobile:start": "npm run start --workspace=apps/mobile",
+    "shared:build": "npm run build --workspace=packages/shared",
+    "test": "npm run test --workspaces --if-present"
+  }
+}
