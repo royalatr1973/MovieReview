@@ -3,11 +3,10 @@
     "name": "CineReview",
     "slug": "cinereview",
     "version": "0.1.0",
+    "owner": "royalatr",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "scheme": "cinereview",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cinereview.app",
@@ -20,7 +19,6 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
       },
       "package": "com.cinereview.app",
@@ -42,7 +40,6 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
           "color": "#e94560"
         }
       ]
