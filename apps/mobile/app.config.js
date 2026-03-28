@@ -1,0 +1,69 @@
+// app.config.js - Dynamic config that handles missing node_modules locally
+// EAS CLI reads this locally (plugins may not resolve without node_modules)
+// EAS cloud build reads this with full dependencies installed
+
+const plugins = [];
+
+try {
+  require.resolve("expo-router");
+  plugins.push("expo-router");
+} catch {}
+
+try {
+  require.resolve("expo-location");
+  plugins.push([
+    "expo-location",
+    {
+      locationAlwaysAndWhenInUsePermission:
+        "CineReview uses your location to detect cinema visits and prompt reviews.",
+      isAndroidBackgroundLocationEnabled: true,
+    },
+  ]);
+} catch {}
+
+try {
+  require.resolve("expo-notifications");
+  plugins.push([
+    "expo-notifications",
+    {
+      color: "#e94560",
+    },
+  ]);
+} catch {}
+
+module.exports = {
+  expo: {
+    name: "CineReview",
+    slug: "cinereview",
+    version: "0.1.0",
+    owner: "royalatr",
+    orientation: "portrait",
+    scheme: "cinereview",
+    userInterfaceStyle: "automatic",
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.cinereview.app",
+      infoPlist: {
+        NSLocationAlwaysAndWhenInUseUsageDescription:
+          "CineReview uses your location to detect cinema visits and suggest movies for review.",
+        NSLocationWhenInUseUsageDescription:
+          "CineReview uses your location to find nearby cinemas.",
+        NSLocationAlwaysUsageDescription:
+          "CineReview monitors cinema visits in the background to prompt you for reviews.",
+        UIBackgroundModes: ["location", "fetch"],
+      },
+    },
+    android: {
+      adaptiveIcon: {
+        backgroundColor: "#1a1a2e",
+      },
+      package: "com.cinereview.app",
+      permissions: [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+      ],
+    },
+    plugins,
+  },
+};
