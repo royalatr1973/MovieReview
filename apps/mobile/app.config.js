@@ -1,35 +1,7 @@
-// app.config.js - Dynamic config that handles missing node_modules locally
-// EAS CLI reads this locally (plugins may not resolve without node_modules)
-// EAS cloud build reads this with full dependencies installed
-
-const plugins = [];
-
-try {
-  require.resolve("expo-router");
-  plugins.push("expo-router");
-} catch {}
-
-try {
-  require.resolve("expo-location");
-  plugins.push([
-    "expo-location",
-    {
-      locationAlwaysAndWhenInUsePermission:
-        "CineReview uses your location to detect cinema visits and prompt reviews.",
-      isAndroidBackgroundLocationEnabled: true,
-    },
-  ]);
-} catch {}
-
-try {
-  require.resolve("expo-notifications");
-  plugins.push([
-    "expo-notifications",
-    {
-      color: "#e94560",
-    },
-  ]);
-} catch {}
+// EAS_BUILD is set to "true" on Expo's cloud build servers.
+// Locally (no node_modules), we skip plugins so EAS CLI can read the config.
+// On the cloud, plugins resolve normally because dependencies are installed.
+const isEasBuild = process.env.EAS_BUILD === "true";
 
 module.exports = {
   expo: {
@@ -64,6 +36,24 @@ module.exports = {
         "ACCESS_BACKGROUND_LOCATION",
       ],
     },
-    plugins,
+    plugins: isEasBuild
+      ? [
+          "expo-router",
+          [
+            "expo-location",
+            {
+              locationAlwaysAndWhenInUsePermission:
+                "CineReview uses your location to detect cinema visits and prompt reviews.",
+              isAndroidBackgroundLocationEnabled: true,
+            },
+          ],
+          [
+            "expo-notifications",
+            {
+              color: "#e94560",
+            },
+          ],
+        ]
+      : [],
   },
 };
