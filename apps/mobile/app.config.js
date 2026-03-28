@@ -36,6 +36,11 @@ module.exports = {
         "ACCESS_BACKGROUND_LOCATION",
       ],
     },
+    extra: {
+      eas: {
+        projectId: "8302c0a4-eb30-4e39-ad46-992a6893b1f8",
+      },
+    },
     plugins: isEasBuild
       ? [
           "expo-router",
