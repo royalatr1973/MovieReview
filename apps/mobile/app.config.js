@@ -8,6 +8,7 @@ module.exports = {
     name: "CineReview",
     slug: "cinereview",
     version: "0.1.0",
+    sdkVersion: "52.0.0",
     owner: "royalatr",
     orientation: "portrait",
     scheme: "cinereview",
