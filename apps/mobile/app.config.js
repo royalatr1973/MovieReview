@@ -42,6 +42,9 @@ module.exports = {
         projectId: "8302c0a4-eb30-4e39-ad46-992a6893b1f8",
       },
     },
+    updates: {
+      enabled: false,
+    },
     plugins: isEasBuild
       ? [
           "expo-router",
