@@ -9,7 +9,10 @@
       "android": {
         "buildType": "apk"
       },
-      "node": "22.12.0"
+      "node": "22.12.0",
+      "env": {
+        "EAS_BUILD": "true"
+      }
     },
     "development": {
       "developmentClient": true,
