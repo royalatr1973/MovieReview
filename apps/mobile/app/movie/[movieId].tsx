@@ -5,8 +5,9 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
+  Pressable,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../src/services/api-client';
 
@@ -117,6 +118,7 @@ const SAMPLE_MOVIES_DATA: Record<string, { movie: MovieDetail; reviews: MovieRev
 };
 
 export default function MovieDetailScreen() {
+  const router = useRouter();
   const { movieId } = useLocalSearchParams<{ movieId: string }>();
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [reviews, setReviews] = useState<MovieReview[]>([]);
@@ -170,6 +172,10 @@ export default function MovieDetailScreen() {
     if (!movie) return null;
     return (
       <View style={styles.header}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={22} color="#e94560" />
+          <Text style={styles.backText}>Movies</Text>
+        </Pressable>
         <Text style={styles.title}>{movie.title}</Text>
         {movie.year && <Text style={styles.year}>{movie.year}</Text>}
         {movie.language && (
@@ -273,6 +279,16 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backText: {
+    color: '#e94560',
+    fontSize: 16,
+    marginLeft: 4,
   },
   title: {
     fontSize: 26,
