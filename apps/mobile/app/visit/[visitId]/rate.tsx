@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 import { DWELL_THRESHOLDS } from '@moviereview/shared';
 import { StarRatingInput } from '../../../src/components/review/StarRatingInput';
 import { useReviewStore } from '../../../src/stores/reviews';
@@ -47,7 +47,7 @@ export default function RateScreen() {
         reviewText: reviewText.trim() || undefined,
         spoilerFlag,
         selectionSource: selectedMovie?.selectionSource || 'manual',
-        clientEventId: uuidv4(),
+        clientEventId: Crypto.randomUUID(),
       });
 
       // Check if user might have watched another movie

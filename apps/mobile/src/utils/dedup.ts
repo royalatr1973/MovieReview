@@ -1,7 +1,7 @@
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 
 export function generateClientEventId(): string {
-  return uuidv4();
+  return Crypto.randomUUID();
 }
 
 export function isDuplicate<T extends { clientEventId: string }>(

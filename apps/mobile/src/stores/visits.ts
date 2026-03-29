@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 import type { VisitCandidate, PromptState } from '@moviereview/shared';
 import { qualifyVisitLocally } from '../services/visit-qualifier';
 
@@ -51,7 +51,7 @@ export const useVisitStore = create<VisitState>((set, get) => ({
   },
 
   simulateVisit: () => {
-    const visitId = uuidv4();
+    const visitId = Crypto.randomUUID();
     const now = new Date();
     const entryTime = new Date(now.getTime() - 120 * 60 * 1000); // 2 hours ago
     const dwellMinutes = 120;
@@ -73,7 +73,7 @@ export const useVisitStore = create<VisitState>((set, get) => ({
       locationConfidence: 0.85,
       qualificationState,
       promptState: 'pending',
-      clientEventId: uuidv4(),
+      clientEventId: Crypto.randomUUID(),
       createdAt: now.toISOString(),
       syncStatus: 'pending',
     };

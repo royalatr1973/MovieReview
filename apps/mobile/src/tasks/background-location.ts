@@ -1,6 +1,6 @@
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 import { qualifyVisitLocally } from '../services/visit-qualifier';
 import { scheduleReviewPrompt } from '../services/notifications';
 import { useVisitStore } from '../stores/visits';

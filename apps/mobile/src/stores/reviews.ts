@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 import type { Review, CreateReviewInput, Movie, SelectionSource } from '@moviereview/shared';
 import { api } from '../services/api-client';
 
@@ -86,7 +86,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   },
 
   submitReview: async (input: CreateReviewInput) => {
-    const reviewId = uuidv4();
+    const reviewId = Crypto.randomUUID();
     const now = new Date().toISOString();
 
     const localReview: LocalReviewData = {
