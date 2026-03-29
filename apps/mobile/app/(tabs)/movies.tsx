@@ -21,6 +21,20 @@ interface MovieWithStats {
   reviewCount: number;
 }
 
+// Sample data for offline/demo use
+const SAMPLE_MOVIES: MovieWithStats[] = [
+  { id: 'dune-part-three', title: 'Dune: Part Three', year: 2026, language: 'English', format: 'IMAX', averageRating: 4.5, reviewCount: 12 },
+  { id: 'the-batman-part-ii', title: 'The Batman Part II', year: 2026, language: 'English', format: '2D', averageRating: 4.2, reviewCount: 8 },
+  { id: 'avengers-secret-wars', title: 'Avengers: Secret Wars', year: 2027, language: 'English', format: '3D', averageRating: 3.8, reviewCount: 25 },
+  { id: 'mission-impossible-8', title: 'Mission: Impossible 8', year: 2025, language: 'English', format: 'IMAX', averageRating: 4.6, reviewCount: 18 },
+  { id: 'spider-man-brand-new-day', title: 'Spider-Man: Brand New Day', year: 2026, language: 'English', format: '3D', averageRating: 4.0, reviewCount: 15 },
+  { id: 'oppenheimer-2', title: 'Oppenheimer 2', year: 2026, language: 'English', format: '2D', averageRating: 4.7, reviewCount: 6 },
+  { id: 'parasite-2', title: 'Parasite 2', year: 2026, language: 'Korean', format: '2D', averageRating: 4.4, reviewCount: 9 },
+  { id: 'the-french-connection-remake', title: 'The French Connection Remake', year: 2026, language: 'English', format: '2D', averageRating: 3.5, reviewCount: 4 },
+  { id: 'interstellar-2', title: 'Interstellar 2', year: 2026, language: 'English', format: 'IMAX', averageRating: 4.8, reviewCount: 22 },
+  { id: 'blade-runner-2099', title: 'Blade Runner 2099', year: 2026, language: 'English', format: '2D', averageRating: 4.3, reviewCount: 7 },
+];
+
 export default function MoviesScreen() {
   const router = useRouter();
   const [movies, setMovies] = useState<MovieWithStats[]>([]);
@@ -32,7 +46,8 @@ export default function MoviesScreen() {
       const response = await api.get<{ data: MovieWithStats[] }>('/movies');
       setMovies(response.data);
     } catch {
-      // Offline or server down
+      // Offline or server down - use sample data
+      setMovies(SAMPLE_MOVIES);
     } finally {
       setLoading(false);
     }
@@ -93,7 +108,7 @@ export default function MoviesScreen() {
                 <Text style={styles.ratingText}>
                   {item.averageRating?.toFixed(1)}
                 </Text>
-                <Text style={styles.reviewCount}>
+                <Text style={styles.reviewCountText}>
                   ({item.reviewCount} {item.reviewCount === 1 ? 'review' : 'reviews'})
                 </Text>
               </>
@@ -114,9 +129,6 @@ export default function MoviesScreen() {
           <Ionicons name="film-outline" size={48} color="#a0a0b0" />
           <Text style={styles.emptyText}>
             {loading ? 'Loading movies...' : 'No movies found'}
-          </Text>
-          <Text style={styles.emptySubtext}>
-            Movies will appear here once the server is connected
           </Text>
         </View>
       }
@@ -161,19 +173,19 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     marginBottom: 4,
   },
   stars: {
     flexDirection: 'row',
-    gap: 2,
+    marginRight: 6,
   },
   ratingText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fbbf24',
+    marginRight: 6,
   },
-  reviewCount: {
+  reviewCountText: {
     fontSize: 13,
     color: '#a0a0b0',
   },
@@ -195,11 +207,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#a0a0b0',
     marginTop: 12,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
-    textAlign: 'center',
   },
 });
