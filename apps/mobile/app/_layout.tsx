@@ -40,6 +40,10 @@ export default function RootLayout() {
           name="review/[reviewId]"
           options={{ title: 'Review Details' }}
         />
+        <Stack.Screen
+          name="movie/[movieId]"
+          options={{ title: 'Movie Details' }}
+        />
       </Stack>
     </>
   );
