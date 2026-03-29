@@ -6,13 +6,19 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch the monorepo root for changes in shared packages
+// Watch the monorepo root so Metro can find shared packages
 config.watchFolders = [monorepoRoot];
 
-// Resolve modules from both the project and monorepo root node_modules
+// Resolve node_modules from both the project and monorepo root
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(monorepoRoot, 'node_modules'),
 ];
+
+// Explicitly map workspace packages so Metro finds them
+// even if npm workspace symlinks aren't set up
+config.resolver.extraNodeModules = {
+  '@moviereview/shared': path.resolve(monorepoRoot, 'packages/shared'),
+};
 
 module.exports = config;
