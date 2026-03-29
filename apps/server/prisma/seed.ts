@@ -23,6 +23,17 @@ const cinemas = [
   { name: 'PVR Cinemas Juhu', latitude: 19.0987, longitude: 72.8263, radius: 100, address: 'Juhu, Mumbai, India' },
   { name: 'INOX Nariman Point', latitude: 19.0232, longitude: 72.8225, radius: 90, address: 'Nariman Point, Mumbai, India' },
   { name: 'Hoyts Melbourne Central', latitude: -37.8108, longitude: 144.9631, radius: 110, address: '211 La Trobe St, Melbourne, Australia' },
+  // Chennai
+  { name: 'Sathyam Cinemas', latitude: 13.0569, longitude: 80.2571, radius: 120, address: '8, Thiru Vi Ka Salai, Royapettah, Chennai' },
+  { name: 'PVR VR Chennai', latitude: 13.0108, longitude: 80.2207, radius: 110, address: 'VR Chennai, Jawaharlal Nehru Road, Anna Nagar, Chennai' },
+  { name: 'INOX National', latitude: 13.0475, longitude: 80.2340, radius: 100, address: '68, Arcot Road, Saligramam, Chennai' },
+  { name: 'AGS Cinemas Navalur', latitude: 12.8449, longitude: 80.2267, radius: 120, address: 'Rajiv Gandhi Salai, Navalur, Chennai' },
+  { name: 'Luxe Cinemas Phoenix', latitude: 13.0133, longitude: 80.2010, radius: 110, address: 'Phoenix MarketCity, Velachery, Chennai' },
+  { name: 'Rohini Silver Screens', latitude: 13.1180, longitude: 80.2006, radius: 100, address: '227, Poonamallee High Road, Koyambedu, Chennai' },
+  { name: 'Mayajaal Multiplex', latitude: 12.8350, longitude: 80.2420, radius: 130, address: 'East Coast Road, Kanathur, Chennai' },
+  { name: 'INOX SKLS Galaxy Mall', latitude: 13.0674, longitude: 80.2370, radius: 100, address: 'Anna Salai, Mount Road, Chennai' },
+  { name: 'PVR ECR', latitude: 12.8760, longitude: 80.2280, radius: 110, address: 'East Coast Road, Sholinganallur, Chennai' },
+  { name: 'Devi Cineplex', latitude: 13.0495, longitude: 80.2500, radius: 90, address: '36, Anna Salai, Mount Road, Chennai' },
 ];
 
 const movies = [
