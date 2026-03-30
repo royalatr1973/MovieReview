@@ -1,10 +1,8 @@
-import { View, Text, StyleSheet, Switch, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Switch, Pressable, Alert, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
 import { useAuthStore } from '../../src/stores/auth';
 import { useVisitStore } from '../../src/stores/visits';
 import { useState } from 'react';
-import { registerGeofences } from '../../src/services/geofence';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuthStore();
@@ -14,8 +12,37 @@ export default function SettingsScreen() {
   const [registering, setRegistering] = useState(false);
 
   const handleRegisterCurrentLocation = async () => {
+    if (Platform.OS === 'web') {
+      // Use browser Geolocation API on web
+      if (!navigator.geolocation) {
+        Alert.alert('Error', 'Geolocation is not supported by this browser.');
+        return;
+      }
+      setRegistering(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          Alert.alert(
+            'Cinema Registered!',
+            `Your current location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) is now registered as "My Test Cinema".\n\nNote: Geofencing only works on native apps. On web, use "Simulate Visit" instead.`,
+          );
+          setRegistering(false);
+        },
+        (error) => {
+          Alert.alert('Error', error.message || 'Failed to get location');
+          setRegistering(false);
+        },
+        { enableHighAccuracy: true },
+      );
+      return;
+    }
+
+    // Native: use expo-location
     setRegistering(true);
     try {
+      const Location = require('expo-location');
+      const { registerGeofences } = require('../../src/services/geofence');
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Location permission is needed to register your current location.');
@@ -28,7 +55,6 @@ export default function SettingsScreen() {
 
       const { latitude, longitude } = location.coords;
 
-      // Register as a geofence
       await registerGeofences([
         {
           id: 'my-test-cinema',
@@ -51,10 +77,35 @@ export default function SettingsScreen() {
   };
 
   const handleSimulateVisit = async () => {
+    if (Platform.OS === 'web') {
+      // Use browser Geolocation API on web
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            simulateVisitAtCurrentLocation({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+            Alert.alert('Visit Simulated!', 'A 2-hour cinema visit at your current location has been created. Check the Home tab.');
+          },
+          () => {
+            simulateVisitAtCurrentLocation(null);
+            Alert.alert('Visit Simulated!', 'A test cinema visit has been created (default location). Check the Home tab.');
+          },
+          { enableHighAccuracy: true },
+        );
+      } else {
+        simulateVisitAtCurrentLocation(null);
+        Alert.alert('Visit Simulated!', 'A test cinema visit has been created. Check the Home tab.');
+      }
+      return;
+    }
+
+    // Native: use expo-location
     try {
+      const Location = require('expo-location');
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        // Fallback to simulated location
         simulateVisitAtCurrentLocation(null);
         return;
       }
@@ -67,7 +118,7 @@ export default function SettingsScreen() {
 
       Alert.alert(
         'Visit Simulated!',
-        `A 2-hour cinema visit at your current location has been created. Check the Home tab.`,
+        'A 2-hour cinema visit at your current location has been created. Check the Home tab.',
       );
     } catch {
       simulateVisitAtCurrentLocation(null);
