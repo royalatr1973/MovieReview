@@ -18,6 +18,7 @@ interface VisitState {
   addVisit: (visit: LocalVisitData) => void;
   updateVisitPromptState: (visitId: string, state: PromptState) => void;
   simulateVisit: () => void;
+  simulateVisitAtCurrentLocation: (coords: { latitude: number; longitude: number } | null) => void;
 }
 
 export const useVisitStore = create<VisitState>((set, get) => ({
@@ -71,6 +72,40 @@ export const useVisitStore = create<VisitState>((set, get) => ({
       exitTime: now.toISOString(),
       dwellMinutes,
       locationConfidence: 0.85,
+      qualificationState,
+      promptState: 'pending',
+      clientEventId: Crypto.randomUUID(),
+      createdAt: now.toISOString(),
+      syncStatus: 'pending',
+    };
+
+    get().addVisit(visit);
+  },
+
+  simulateVisitAtCurrentLocation: (coords: { latitude: number; longitude: number } | null) => {
+    const visitId = Crypto.randomUUID();
+    const now = new Date();
+    const entryTime = new Date(now.getTime() - 120 * 60 * 1000); // 2 hours ago
+    const dwellMinutes = 120;
+
+    const qualificationState = qualifyVisitLocally({
+      dwellMinutes,
+      locationConfidence: 0.95,
+      recentVisitCountAtSameCinema: 0,
+    });
+
+    const lat = coords?.latitude ?? 13.0569;
+    const lon = coords?.longitude ?? 80.2571;
+
+    const visit: LocalVisitData = {
+      visitId,
+      userId: 'local-user',
+      cinemaId: `current-location-${lat.toFixed(4)}-${lon.toFixed(4)}`,
+      cinemaName: `Cinema @ ${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      entryTime: entryTime.toISOString(),
+      exitTime: now.toISOString(),
+      dwellMinutes,
+      locationConfidence: 0.95,
       qualificationState,
       promptState: 'pending',
       clientEventId: Crypto.randomUUID(),

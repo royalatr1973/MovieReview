@@ -1,27 +1,78 @@
 import { View, Text, StyleSheet, Switch, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useAuthStore } from '../../src/stores/auth';
 import { useVisitStore } from '../../src/stores/visits';
 import { useState } from 'react';
+import { registerGeofences } from '../../src/services/geofence';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuthStore();
-  const { simulateVisit } = useVisitStore();
+  const { simulateVisitAtCurrentLocation } = useVisitStore();
   const [trackingEnabled, setTrackingEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [registering, setRegistering] = useState(false);
 
-  const handleSimulateVisit = () => {
-    Alert.alert(
-      'Simulate Visit',
-      'This will create a test cinema visit for development purposes.',
-      [
-        { text: 'Cancel', style: 'cancel' },
+  const handleRegisterCurrentLocation = async () => {
+    setRegistering(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is needed to register your current location.');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const { latitude, longitude } = location.coords;
+
+      // Register as a geofence
+      await registerGeofences([
         {
-          text: 'Simulate',
-          onPress: () => simulateVisit(),
+          id: 'my-test-cinema',
+          name: 'My Test Cinema',
+          latitude,
+          longitude,
+          radius: 100,
         },
-      ]
-    );
+      ]);
+
+      Alert.alert(
+        'Cinema Registered!',
+        `Your current location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) is now registered as "My Test Cinema" with a 100m geofence.\n\nWhen you leave this area and come back, the app will detect it as a cinema visit.`,
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to get location');
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handleSimulateVisit = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        // Fallback to simulated location
+        simulateVisitAtCurrentLocation(null);
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      simulateVisitAtCurrentLocation(location.coords);
+
+      Alert.alert(
+        'Visit Simulated!',
+        `A 2-hour cinema visit at your current location has been created. Check the Home tab.`,
+      );
+    } catch {
+      simulateVisitAtCurrentLocation(null);
+      Alert.alert('Visit Simulated!', 'A test cinema visit has been created. Check the Home tab.');
+    }
   };
 
   const handleLogout = () => {
@@ -71,15 +122,25 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {__DEV__ && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Developer</Text>
-          <Pressable style={styles.devButton} onPress={handleSimulateVisit}>
-            <Ionicons name="bug" size={20} color="#fbbf24" />
-            <Text style={styles.devButtonText}>Simulate Cinema Visit</Text>
-          </Pressable>
-        </View>
-      )}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Testing</Text>
+
+        <Pressable
+          style={[styles.devButton, registering && styles.devButtonDisabled]}
+          onPress={handleRegisterCurrentLocation}
+          disabled={registering}
+        >
+          <Ionicons name="pin" size={20} color="#4ade80" />
+          <Text style={styles.devButtonTextGreen}>
+            {registering ? 'Getting Location...' : 'Register Current Location as Cinema'}
+          </Text>
+        </Pressable>
+
+        <Pressable style={styles.devButton} onPress={handleSimulateVisit}>
+          <Ionicons name="bug" size={20} color="#fbbf24" />
+          <Text style={styles.devButtonText}>Simulate Visit at Current Location</Text>
+        </Pressable>
+      </View>
 
       <Pressable style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Log Out</Text>
@@ -130,26 +191,37 @@ const styles = StyleSheet.create({
   settingInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    marginRight: 10,
   },
   settingLabel: {
     fontSize: 16,
     color: '#ffffff',
+    marginLeft: 10,
   },
   devButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
     backgroundColor: '#1a1a2e',
     borderRadius: 12,
     padding: 16,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#fbbf24',
+  },
+  devButtonDisabled: {
+    opacity: 0.6,
   },
   devButtonText: {
     color: '#fbbf24',
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 10,
+  },
+  devButtonTextGreen: {
+    color: '#4ade80',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
   },
   logoutButton: {
     backgroundColor: '#1a1a2e',
