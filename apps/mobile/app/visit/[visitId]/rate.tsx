@@ -59,7 +59,7 @@ export default function RateScreen() {
           [
             {
               text: 'No, done',
-              onPress: () => router.dismissAll(),
+              onPress: () => router.replace('/'),
             },
             {
               text: 'Yes',
@@ -69,12 +69,12 @@ export default function RateScreen() {
         );
       } else {
         Alert.alert('Review Submitted!', 'Thanks for your review.', [
-          { text: 'OK', onPress: () => router.dismissAll() },
+          { text: 'OK', onPress: () => router.replace('/') },
         ]);
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to submit review. It will be saved locally and synced later.');
-      router.dismissAll();
+      router.replace('/');
     } finally {
       setSubmitting(false);
     }
