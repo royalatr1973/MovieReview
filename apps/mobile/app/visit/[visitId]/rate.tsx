@@ -49,37 +49,29 @@ export default function RateScreen() {
         selectionSource: selectedMovie?.selectionSource || 'manual',
         clientEventId: Crypto.randomUUID(),
       });
-
-      // Navigate to home after successful submission
-      if (Platform.OS === 'web') {
-        window.alert('Review Submitted! Thanks for your review.');
-        router.replace('/');
-      } else {
-        const dwell = visit?.dwellMinutes ?? 0;
-        if (dwell >= DWELL_THRESHOLDS.MULTI_MOVIE_THRESHOLD) {
-          Alert.alert(
-            'Another Movie?',
-            'Did you watch another movie during this visit?',
-            [
-              { text: 'No, done', onPress: () => router.replace('/') },
-              { text: 'Yes', onPress: () => router.replace(`/visit/${visitId}/select-movie`) },
-            ]
-          );
-        } else {
-          Alert.alert('Review Submitted!', 'Thanks for your review.', [
-            { text: 'OK', onPress: () => router.replace('/') },
-          ]);
-        }
-      }
     } catch (err) {
-      if (Platform.OS === 'web') {
-        window.alert('Failed to submit review. It will be saved locally and synced later.');
-      } else {
-        Alert.alert('Error', 'Failed to submit review. It will be saved locally and synced later.');
-      }
+      // Review saved locally, will sync later
+    }
+
+    // Always navigate to home after submit
+    if (Platform.OS === 'web') {
       router.replace('/');
-    } finally {
-      setSubmitting(false);
+    } else {
+      const dwell = visit?.dwellMinutes ?? 0;
+      if (dwell >= DWELL_THRESHOLDS.MULTI_MOVIE_THRESHOLD) {
+        Alert.alert(
+          'Another Movie?',
+          'Did you watch another movie during this visit?',
+          [
+            { text: 'No, done', onPress: () => router.replace('/') },
+            { text: 'Yes', onPress: () => router.replace(`/visit/${visitId}/select-movie`) },
+          ]
+        );
+      } else {
+        Alert.alert('Review Submitted!', 'Thanks for your review.', [
+          { text: 'OK', onPress: () => router.replace('/') },
+        ]);
+      }
     }
   };
 
