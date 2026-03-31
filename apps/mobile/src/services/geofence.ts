@@ -1,7 +1,9 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import * as Crypto from 'expo-crypto';
 import { GEOFENCE_MAX_REGIONS } from '@moviereview/shared';
 import type { Cinema } from '@moviereview/shared';
+import { scheduleReviewPrompt } from './notifications';
 
 export const GEOFENCE_TASK_NAME = 'cinema-geofence-task';
 
@@ -14,16 +16,11 @@ export interface GeofenceEvent {
   longitude: number;
 }
 
-type GeofenceCallback = (event: GeofenceEvent) => void;
-
-let onGeofenceEvent: GeofenceCallback | null = null;
-
-export function setGeofenceCallback(callback: GeofenceCallback) {
-  onGeofenceEvent = callback;
-}
+// Track enter times for dwell calculation
+const enterTimes: Record<string, string> = {};
 
 // Define the background task
-TaskManager.defineTask(GEOFENCE_TASK_NAME, ({ data, error }) => {
+TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }) => {
   if (error) {
     console.error('Geofence task error:', error);
     return;
@@ -34,18 +31,54 @@ TaskManager.defineTask(GEOFENCE_TASK_NAME, ({ data, error }) => {
     region: Location.LocationRegion;
   };
 
-  const event: GeofenceEvent = {
-    cinemaId: region.identifier!,
-    cinemaName: (region as any).cinemaName || region.identifier!,
-    eventType:
-      eventType === Location.GeofencingEventType.Enter ? 'enter' : 'exit',
-    timestamp: new Date().toISOString(),
-    latitude: region.latitude,
-    longitude: region.longitude,
-  };
+  const cinemaId = region.identifier!;
+  const cinemaName = (region as any).cinemaName || region.identifier!;
+  const now = new Date().toISOString();
 
-  if (onGeofenceEvent) {
-    onGeofenceEvent(event);
+  if (eventType === Location.GeofencingEventType.Enter) {
+    // Record entry time
+    enterTimes[cinemaId] = now;
+    console.log(`[Geofence] Entered ${cinemaName} at ${now}`);
+  } else if (eventType === Location.GeofencingEventType.Exit) {
+    // Calculate dwell time
+    const entryTime = enterTimes[cinemaId];
+    let dwellMinutes = 0;
+
+    if (entryTime) {
+      dwellMinutes = Math.round(
+        (new Date(now).getTime() - new Date(entryTime).getTime()) / 60000
+      );
+      delete enterTimes[cinemaId];
+    }
+
+    console.log(`[Geofence] Exited ${cinemaName}, dwell: ${dwellMinutes} min`);
+
+    // Always create a visit and notify on exit (dwell check done at review time)
+    // For testing, we notify immediately on any exit
+    const visitId = Crypto.randomUUID();
+
+    try {
+      // Store visit data in global for the app to pick up
+      if (global._pendingVisits === undefined) {
+        global._pendingVisits = [];
+      }
+      global._pendingVisits.push({
+        visitId,
+        cinemaId,
+        cinemaName,
+        entryTime: entryTime || now,
+        exitTime: now,
+        dwellMinutes: Math.max(dwellMinutes, 1),
+        latitude: region.latitude,
+        longitude: region.longitude,
+      });
+
+      // Send notification
+      await scheduleReviewPrompt(cinemaName, visitId);
+      console.log(`[Geofence] Notification sent for ${cinemaName}, visitId: ${visitId}`);
+    } catch (err) {
+      console.error('[Geofence] Failed to process exit event:', err);
+    }
   }
 });
 
@@ -73,6 +106,7 @@ export async function registerGeofences(cinemas: Cinema[]): Promise<void> {
 
   if (regions.length > 0) {
     await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
+    console.log(`[Geofence] Registered ${regions.length} geofences`);
   }
 }
 

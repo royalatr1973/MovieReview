@@ -1,19 +1,20 @@
-import { View, Text, StyleSheet, Switch, Pressable, Alert, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Switch, Pressable, Alert, ScrollView, Platform, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/auth';
 import { useVisitStore } from '../../src/stores/visits';
+import { useSettingsStore } from '../../src/stores/settings';
 import { useState } from 'react';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuthStore();
   const { simulateVisitAtCurrentLocation } = useVisitStore();
+  const { testDwellMinutes, testGeofenceRadius, setTestDwellMinutes, setTestGeofenceRadius } = useSettingsStore();
   const [trackingEnabled, setTrackingEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [registering, setRegistering] = useState(false);
 
   const handleRegisterCurrentLocation = async () => {
     if (Platform.OS === 'web') {
-      // Use browser Geolocation API on web
       if (!navigator.geolocation) {
         Alert.alert('Error', 'Geolocation is not supported by this browser.');
         return;
@@ -43,9 +44,15 @@ export default function SettingsScreen() {
       const Location = require('expo-location');
       const { registerGeofences } = require('../../src/services/geofence');
 
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is needed to register your current location.');
+      const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
+      if (fgStatus !== 'granted') {
+        Alert.alert('Permission Denied', 'Foreground location permission is needed.');
+        return;
+      }
+
+      const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+      if (bgStatus !== 'granted') {
+        Alert.alert('Permission Denied', 'Background location permission is needed for geofencing. Please enable "Allow all the time" in app settings.');
         return;
       }
 
@@ -61,13 +68,13 @@ export default function SettingsScreen() {
           name: 'My Test Cinema',
           latitude,
           longitude,
-          radius: 100,
+          radius: testGeofenceRadius,
         },
       ]);
 
       Alert.alert(
         'Cinema Registered!',
-        `Your current location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) is now registered as "My Test Cinema" with a 100m geofence.\n\nWhen you leave this area and come back, the app will detect it as a cinema visit.`,
+        `Your current location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) is now registered as "My Test Cinema" with a ${testGeofenceRadius}m geofence.\n\nDwell time for review: ${testDwellMinutes} min\n\nWalk ${testGeofenceRadius}m+ away and come back to trigger a visit.`,
       );
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to get location');
@@ -78,7 +85,6 @@ export default function SettingsScreen() {
 
   const handleSimulateVisit = async () => {
     if (Platform.OS === 'web') {
-      // Use browser Geolocation API on web
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -86,7 +92,7 @@ export default function SettingsScreen() {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             });
-            Alert.alert('Visit Simulated!', 'A 2-hour cinema visit at your current location has been created. Check the Home tab.');
+            Alert.alert('Visit Simulated!', 'A cinema visit at your current location has been created. Check the Home tab.');
           },
           () => {
             simulateVisitAtCurrentLocation(null);
@@ -118,7 +124,7 @@ export default function SettingsScreen() {
 
       Alert.alert(
         'Visit Simulated!',
-        'A 2-hour cinema visit at your current location has been created. Check the Home tab.',
+        'A cinema visit at your current location has been created. Check the Home tab.',
       );
     } catch {
       simulateVisitAtCurrentLocation(null);
@@ -132,6 +138,9 @@ export default function SettingsScreen() {
       { text: 'Log Out', style: 'destructive', onPress: logout },
     ]);
   };
+
+  const dwellOptions = [1, 2, 5, 15, 30, 45];
+  const radiusOptions = [50, 100, 200, 500];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -174,7 +183,47 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Testing</Text>
+        <Text style={styles.sectionTitle}>Testing Configuration</Text>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>Minimum Dwell Time (minutes)</Text>
+          <Text style={styles.hint}>How long you need to stay for a visit to count</Text>
+          <View style={styles.chipRow}>
+            {dwellOptions.map((mins) => (
+              <Pressable
+                key={mins}
+                style={[styles.chip, testDwellMinutes === mins && styles.chipActive]}
+                onPress={() => setTestDwellMinutes(mins)}
+              >
+                <Text style={[styles.chipText, testDwellMinutes === mins && styles.chipTextActive]}>
+                  {mins}m
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={[styles.card, { marginTop: 8 }]}>
+          <Text style={styles.label}>Geofence Radius (meters)</Text>
+          <Text style={styles.hint}>Distance from cinema center to trigger detection</Text>
+          <View style={styles.chipRow}>
+            {radiusOptions.map((r) => (
+              <Pressable
+                key={r}
+                style={[styles.chip, testGeofenceRadius === r && styles.chipActive]}
+                onPress={() => setTestGeofenceRadius(r)}
+              >
+                <Text style={[styles.chipText, testGeofenceRadius === r && styles.chipTextActive]}>
+                  {r}m
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Testing Actions</Text>
 
         <Pressable
           style={[styles.devButton, registering && styles.devButtonDisabled]}
@@ -229,8 +278,38 @@ const styles = StyleSheet.create({
     color: '#a0a0b0',
     marginBottom: 4,
   },
+  hint: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 10,
+  },
   value: {
     fontSize: 16,
+    color: '#ffffff',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#0f3460',
+    borderWidth: 1,
+    borderColor: '#0f3460',
+  },
+  chipActive: {
+    backgroundColor: '#e94560',
+    borderColor: '#e94560',
+  },
+  chipText: {
+    color: '#a0a0b0',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  chipTextActive: {
     color: '#ffffff',
   },
   settingRow: {
