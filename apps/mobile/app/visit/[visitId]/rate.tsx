@@ -55,7 +55,7 @@ export default function RateScreen() {
 
     // Always navigate to home after submit
     if (Platform.OS === 'web') {
-      router.replace('/');
+      router.replace('/(tabs)/home');
     } else {
       const dwell = visit?.dwellMinutes ?? 0;
       if (dwell >= DWELL_THRESHOLDS.MULTI_MOVIE_THRESHOLD) {
@@ -63,13 +63,13 @@ export default function RateScreen() {
           'Another Movie?',
           'Did you watch another movie during this visit?',
           [
-            { text: 'No, done', onPress: () => router.replace('/') },
+            { text: 'No, done', onPress: () => router.replace('/(tabs)/home') },
             { text: 'Yes', onPress: () => router.replace(`/visit/${visitId}/select-movie`) },
           ]
         );
       } else {
         Alert.alert('Review Submitted!', 'Thanks for your review.', [
-          { text: 'OK', onPress: () => router.replace('/') },
+          { text: 'OK', onPress: () => router.replace('/(tabs)/home') },
         ]);
       }
     }
