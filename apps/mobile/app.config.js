@@ -49,6 +49,14 @@ module.exports = {
       ? [
           "expo-router",
           [
+            "expo-build-properties",
+            {
+              android: {
+                kotlinVersion: "1.9.25",
+              },
+            },
+          ],
+          [
             "expo-location",
             {
               locationAlwaysAndWhenInUsePermission:
