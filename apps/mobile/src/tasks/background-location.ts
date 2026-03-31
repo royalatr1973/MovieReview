@@ -1,31 +1,30 @@
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
-import * as Crypto from 'expo-crypto';
-import { qualifyVisitLocally } from '../services/visit-qualifier';
-import { scheduleReviewPrompt } from '../services/notifications';
-import { useVisitStore } from '../stores/visits';
 
 export const BACKGROUND_LOCATION_TASK = 'background-location-task';
 
-TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
-  if (error) {
-    console.error('Background location error:', error);
-    return;
-  }
+try {
+  TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
+    if (error) {
+      console.error('Background location error:', error);
+      return;
+    }
 
-  const { locations } = data as { locations: Location.LocationObject[] };
+    const { locations } = data as { locations: Location.LocationObject[] };
 
-  if (!locations || locations.length === 0) return;
+    if (!locations || locations.length === 0) return;
 
-  // Process the latest location update
-  const location = locations[locations.length - 1];
+    const location = locations[locations.length - 1];
 
-  console.log('Background location update:', {
-    lat: location.coords.latitude,
-    lng: location.coords.longitude,
-    accuracy: location.coords.accuracy,
+    console.log('Background location update:', {
+      lat: location.coords.latitude,
+      lng: location.coords.longitude,
+      accuracy: location.coords.accuracy,
+    });
   });
-});
+} catch (e) {
+  console.warn('[BackgroundLocation] Failed to define task:', e);
+}
 
 export async function startBackgroundLocationUpdates(): Promise<boolean> {
   const { status } = await Location.getBackgroundPermissionsAsync();
@@ -36,8 +35,8 @@ export async function startBackgroundLocationUpdates(): Promise<boolean> {
 
   await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
     accuracy: Location.Accuracy.Balanced,
-    timeInterval: 5 * 60 * 1000, // 5 minutes
-    distanceInterval: 100, // 100 meters
+    timeInterval: 5 * 60 * 1000,
+    distanceInterval: 100,
     showsBackgroundLocationIndicator: false,
     deferredUpdatesInterval: 5 * 60 * 1000,
   });

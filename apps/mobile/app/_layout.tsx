@@ -5,6 +5,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/stores/auth';
 import { useVisitStore } from '../src/stores/visits';
 
+// Import task definitions so they register before the app renders (safe on all platforms)
+import '../src/services/geofence';
+import '../src/tasks/background-location';
+
 // Declare global for pending visits from geofence background task
 declare global {
   var _pendingVisits: Array<{
