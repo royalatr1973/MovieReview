@@ -51,6 +51,7 @@ module.exports = {
     plugins: hasNodeModules
       ? [
           "expo-router",
+          "./plugins/withMonorepoRoot",
           [
             "expo-build-properties",
             {
