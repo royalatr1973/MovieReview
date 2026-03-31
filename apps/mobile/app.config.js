@@ -1,7 +1,10 @@
-// EAS_BUILD is set to "true" on Expo's cloud build servers.
-// Locally (no node_modules), we skip plugins so EAS CLI can read the config.
-// On the cloud, plugins resolve normally because dependencies are installed.
-const isEasBuild = process.env.EAS_BUILD === "true";
+// Check if node_modules exist (plugins need dependencies installed).
+// During EAS CLI config reads (before install), we skip plugins.
+// During local builds (expo run:android) and EAS cloud builds, plugins load normally.
+const fs = require("fs");
+const path = require("path");
+const hasNodeModules = fs.existsSync(path.join(__dirname, "node_modules")) ||
+  fs.existsSync(path.join(__dirname, "..", "..", "node_modules", "expo-router"));
 
 module.exports = {
   expo: {
@@ -45,7 +48,7 @@ module.exports = {
     updates: {
       enabled: false,
     },
-    plugins: isEasBuild
+    plugins: hasNodeModules
       ? [
           "expo-router",
           [
