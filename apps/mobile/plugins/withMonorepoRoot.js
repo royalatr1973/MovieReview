@@ -1,26 +1,29 @@
 const { withAppBuildGradle } = require("expo/config-plugins");
-const path = require("path");
 
 /**
- * Config plugin that fixes React Native Gradle plugin's root directory
- * for monorepo builds. Without this, the entry file path resolves incorrectly
- * because Gradle assumes node_modules is in apps/mobile/ but it's hoisted
- * to the monorepo root.
+ * Config plugin that fixes React Native Gradle plugin's entry file resolution
+ * for monorepo builds. The dynamic entryFile resolution produces a path relative
+ * to android/app/ that Metro can't resolve from the monorepo root. This replaces
+ * it with a static path to our local index.js.
  */
 function withMonorepoRoot(config) {
   return withAppBuildGradle(config, (config) => {
-    const contents = config.modResults.contents;
+    let contents = config.modResults.contents;
 
-    // Find the react { block and add/replace root and entryFile
-    // The root should point from android/app/ to the monorepo root
-    // entryFile should point to our local index.js
-    if (contents.includes("react {")) {
-      config.modResults.contents = contents.replace(
-        /react \{/,
-        'react {\n    root = file("../../../..")\n    entryFile = file("../../index.js")'
-      );
-    }
+    // Replace the dynamic entryFile with our static index.js
+    // From android/app/, ../../index.js points to apps/mobile/index.js
+    contents = contents.replace(
+      /entryFile = file\(\["node".*?\)\.text\.trim\(\)\)/,
+      'entryFile = file("../../index.js")'
+    );
 
+    // Uncomment and set root to apps/mobile/ (from android/app/, that's ../../)
+    contents = contents.replace(
+      /\/\/\s*root = file\("\.\.\/\.\.\/"\)/,
+      'root = file("../../")'
+    );
+
+    config.modResults.contents = contents;
     return config;
   });
 }
