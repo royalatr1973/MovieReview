@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +11,13 @@ export default function ConfirmScreen() {
   const { getVisit, updateVisitPromptState } = useVisitStore();
 
   const visit = getVisit(visitId);
+  const alreadyHandled = visit?.promptState === 'reviewed' || visit?.promptState === 'dismissed';
+
+  useEffect(() => {
+    if (alreadyHandled) {
+      router.replace('/(tabs)/home');
+    }
+  }, [alreadyHandled]);
 
   if (!visit) {
     return (
@@ -17,6 +25,10 @@ export default function ConfirmScreen() {
         <Text style={styles.errorText}>Visit not found</Text>
       </View>
     );
+  }
+
+  if (alreadyHandled) {
+    return null;
   }
 
   const handleYes = () => {

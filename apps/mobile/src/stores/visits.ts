@@ -44,10 +44,15 @@ export const useVisitStore = create<VisitState>((set, get) => ({
   },
 
   updateVisitPromptState: (visitId: string, promptState: PromptState) => {
+    const update = (v: LocalVisitData) =>
+      v.visitId === visitId ? { ...v, promptState } : v;
     set((state) => ({
-      visits: state.visits.map((v) =>
-        v.visitId === visitId ? { ...v, promptState } : v
-      ),
+      visits: state.visits.map(update),
+      recentVisits: state.recentVisits.map(update),
+      activeVisit:
+        state.activeVisit?.visitId === visitId
+          ? { ...state.activeVisit, promptState }
+          : state.activeVisit,
     }));
   },
 

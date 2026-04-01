@@ -22,7 +22,7 @@ export default function RateScreen() {
   const router = useRouter();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const { selectedMovie, submitReview } = useReviewStore();
-  const { getVisit } = useVisitStore();
+  const { getVisit, updateVisitPromptState } = useVisitStore();
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [spoilerFlag, setSpoilerFlag] = useState(false);
@@ -55,6 +55,7 @@ export default function RateScreen() {
 
     // Always navigate to home after submit
     if (Platform.OS === 'web') {
+      updateVisitPromptState(visitId, 'reviewed');
       router.replace('/(tabs)/home');
     } else {
       const dwell = visit?.dwellMinutes ?? 0;
@@ -63,11 +64,18 @@ export default function RateScreen() {
           'Another Movie?',
           'Did you watch another movie during this visit?',
           [
-            { text: 'No, done', onPress: () => router.replace('/(tabs)/home') },
+            {
+              text: 'No, done',
+              onPress: () => {
+                updateVisitPromptState(visitId, 'reviewed');
+                router.replace('/(tabs)/home');
+              },
+            },
             { text: 'Yes', onPress: () => router.replace(`/visit/${visitId}/select-movie`) },
           ]
         );
       } else {
+        updateVisitPromptState(visitId, 'reviewed');
         Alert.alert('Review Submitted!', 'Thanks for your review.', [
           { text: 'OK', onPress: () => router.replace('/(tabs)/home') },
         ]);

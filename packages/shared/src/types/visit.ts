@@ -9,7 +9,8 @@ export type PromptState =
   | 'pending'
   | 'shown'
   | 'dismissed'
-  | 'completed';
+  | 'completed'
+  | 'reviewed';
 
 export interface VisitCandidate {
   visitId: string;
