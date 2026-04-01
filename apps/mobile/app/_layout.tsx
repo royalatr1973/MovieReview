@@ -16,8 +16,18 @@ function pickUpPendingVisits() {
   const pending = [...global._pendingVisits];
   global._pendingVisits = [];
 
-  const { addVisit } = useVisitStore.getState();
+  const { addVisit, visits } = useVisitStore.getState();
+  const now = Date.now();
   for (const pv of pending) {
+    // Deduplicate: skip if a non-discarded visit for this cinema exists within the last 4 hours
+    const recentDupe = visits.find(
+      (v) =>
+        v.cinemaId === pv.cinemaId &&
+        v.promptState !== 'discarded' &&
+        now - new Date(v.createdAt).getTime() < 4 * 60 * 60 * 1000
+    );
+    if (recentDupe) continue;
+
     addVisit({
       visitId: pv.visitId,
       userId: 'local-user',
