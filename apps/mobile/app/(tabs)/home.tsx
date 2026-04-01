@@ -55,15 +55,17 @@ export default function HomeScreen() {
           {recentVisits.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Recent Visits</Text>
-              {recentVisits.slice(0, 3).map((visit) => (
-                <VisitCard
-                  key={visit.visitId}
-                  visit={visit}
-                  onPress={() =>
-                    router.push(`/visit/${visit.visitId}/confirm`)
-                  }
-                />
-              ))}
+              {recentVisits.slice(0, 3).map((visit) => {
+                const canReview =
+                  visit.promptState === 'pending' || visit.promptState === 'completed';
+                return (
+                  <VisitCard
+                    key={visit.visitId}
+                    visit={visit}
+                    onPress={canReview ? () => router.push(`/visit/${visit.visitId}/confirm`) : undefined}
+                  />
+                );
+              })}
             </View>
           )}
 

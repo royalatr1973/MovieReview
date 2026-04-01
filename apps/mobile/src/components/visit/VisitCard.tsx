@@ -48,14 +48,21 @@ export function VisitCard({ visit, onPress }: VisitCardProps) {
         </View>
       </View>
 
-      {visit.promptState === 'pending' &&
+      {visit.promptState === 'reviewed' || visit.promptState === 'dismissed' ? (
+        <View style={styles.action}>
+          <Ionicons name="checkmark-circle" size={16} color="#4ade80" />
+          <Text style={styles.reviewedText}>
+            {visit.promptState === 'reviewed' ? 'Reviewed' : 'Skipped'}
+          </Text>
+        </View>
+      ) : visit.promptState === 'pending' &&
         (visit.qualificationState === 'soft_confirm' ||
-          visit.qualificationState === 'full_review') && (
-          <View style={styles.action}>
-            <Text style={styles.actionText}>Tap to review</Text>
-            <Ionicons name="chevron-forward" size={16} color="#e94560" />
-          </View>
-        )}
+          visit.qualificationState === 'full_review') ? (
+        <View style={styles.action}>
+          <Text style={styles.actionText}>Tap to review</Text>
+          <Ionicons name="chevron-forward" size={16} color="#e94560" />
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -112,5 +119,11 @@ const styles = StyleSheet.create({
     color: '#e94560',
     fontSize: 14,
     fontWeight: '600',
+  },
+  reviewedText: {
+    color: '#4ade80',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
   },
 });
