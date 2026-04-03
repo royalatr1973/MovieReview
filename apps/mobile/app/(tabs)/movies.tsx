@@ -117,7 +117,7 @@ export default function MoviesScreen() {
 
   const onRefresh = useCallback(async () => {
     await loadMovies();
-  }, []);
+  }, [loadMovies]);
 
   return (
     <FlatList

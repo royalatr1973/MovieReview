@@ -16,6 +16,7 @@ interface Movie {
 export default function Movies() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [mergeSource, setMergeSource] = useState<string | null>(null);
   const [mergeTarget, setMergeTarget] = useState('');
@@ -31,8 +32,9 @@ export default function Movies() {
     try {
       const data = await api<Movie[]>('/admin/movies');
       setMovies(data);
-    } catch {
-      // handled
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load movies');
     } finally {
       setLoading(false);
     }
@@ -87,6 +89,12 @@ export default function Movies() {
           style={searchInput}
         />
       </div>
+
+      {error && (
+        <div style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '10px 14px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>
+          {error}
+        </div>
+      )}
 
       {/* Merge controls */}
       {mergeSource && (

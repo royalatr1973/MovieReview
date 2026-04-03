@@ -54,6 +54,8 @@ try {
       region: Location.LocationRegion;
     };
 
+    if (!region?.identifier) return;
+
     const cinemaId = region.identifier!;
     const nameMap = await getCinemaNameMap();
     const cinemaName = nameMap[cinemaId] ?? cinemaId;

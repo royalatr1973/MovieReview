@@ -24,7 +24,7 @@ export default function HistoryScreen() {
     setRefreshing(true);
     await loadReviews();
     setRefreshing(false);
-  }, []);
+  }, [loadReviews]);
 
   return (
     <FlatList

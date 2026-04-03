@@ -22,6 +22,7 @@ const emptyCinema = {
 export default function Cinemas() {
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Cinema | null>(null);
   const [form, setForm] = useState(emptyCinema);
@@ -36,8 +37,9 @@ export default function Cinemas() {
     try {
       const data = await api<Cinema[]>('/admin/cinemas');
       setCinemas(data);
-    } catch {
-      // handled
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load cinemas');
     } finally {
       setLoading(false);
     }
@@ -91,6 +93,7 @@ export default function Cinemas() {
         });
       }
       setShowForm(false);
+      setForm(emptyCinema);
       loadCinemas();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to save');
@@ -121,6 +124,12 @@ export default function Cinemas() {
         <h1 style={{ margin: 0, fontSize: 22 }}>Cinemas ({cinemas.length})</h1>
         <button onClick={openAdd} style={addBtn}>+ Add Cinema</button>
       </div>
+
+      {error && (
+        <div style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '10px 14px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <div style={formCard}>

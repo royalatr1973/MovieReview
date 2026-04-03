@@ -172,9 +172,16 @@ router.post('/cinemas', async (req: AuthenticatedRequest, res, next) => {
 router.patch('/cinemas/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
     const id = req.params.id as string;
+    const allowedFields = ['name', 'latitude', 'longitude', 'radius', 'address', 'chain', 'city', 'active'] as const;
+    const data: Record<string, unknown> = {};
+    for (const key of allowedFields) {
+      if (key in req.body) {
+        data[key] = req.body[key];
+      }
+    }
     const cinema = await prisma.cinema.update({
       where: { id },
-      data: req.body,
+      data,
     });
     res.json(cinema);
   } catch (err) {
@@ -215,17 +222,37 @@ router.post('/movies/merge', async (req: AuthenticatedRequest, res, next) => {
       return;
     }
 
-    // Move all reviews from source to target
-    await prisma.review.updateMany({
-      where: { movieId: sourceId },
-      data: { movieId: targetId },
-    });
+    // Verify both movies exist
+    const [source, target] = await Promise.all([
+      prisma.movie.findUnique({ where: { id: sourceId } }),
+      prisma.movie.findUnique({ where: { id: targetId } }),
+    ]);
+    if (!source) {
+      res.status(404).json({ message: `Source movie ${sourceId} not found` });
+      return;
+    }
+    if (!target) {
+      res.status(404).json({ message: `Target movie ${targetId} not found` });
+      return;
+    }
 
-    // Delete source movie
-    await prisma.movie.delete({ where: { id: sourceId } });
+    // Move all reviews from source to target, then delete source
+    await prisma.$transaction([
+      prisma.review.updateMany({
+        where: { movieId: sourceId },
+        data: { movieId: targetId },
+      }),
+      prisma.movie.delete({ where: { id: sourceId } }),
+    ]);
 
     res.json({ message: 'Movies merged successfully' });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.code === 'P2002') {
+      res.status(409).json({
+        message: 'Merge failed due to a unique constraint violation — a review may already exist for the target movie with the same unique key',
+      });
+      return;
+    }
     next(err);
   }
 });

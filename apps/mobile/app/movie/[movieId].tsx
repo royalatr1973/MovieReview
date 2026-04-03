@@ -81,7 +81,7 @@ export default function MovieDetailScreen() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Re-read whenever movie store updates (e.g. after review submit)
   const movies = useMovieStore((s) => s.movies);

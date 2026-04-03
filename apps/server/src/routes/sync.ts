@@ -199,7 +199,7 @@ router.post(
           results.push({
             clientEventId: item.clientEventId,
             status: 'error',
-            error: err.message,
+            error: 'Failed to process item',
           });
         }
       }

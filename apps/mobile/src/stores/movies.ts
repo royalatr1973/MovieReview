@@ -117,6 +117,8 @@ export const useMovieStore = create<MovieState>((set, get) => ({
   },
 
   recordReview: async (movieId: string, rating: number) => {
+    if (!movieId) return;
+
     // Optimistic update in Zustand
     set((state) => ({
       movies: state.movies.map((m) => {

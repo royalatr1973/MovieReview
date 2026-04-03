@@ -26,6 +26,7 @@ export default function Reviews() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadReviews = useCallback(async (p: number) => {
@@ -36,8 +37,9 @@ export default function Reviews() {
       setTotalPages(res.totalPages);
       setTotal(res.total);
       setPage(p);
-    } catch {
-      // handled by api redirect
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load reviews');
     } finally {
       setLoading(false);
     }
@@ -67,6 +69,12 @@ export default function Reviews() {
       <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
         {total} total reviews
       </p>
+
+      {error && (
+        <div style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '10px 14px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div>Loading...</div>

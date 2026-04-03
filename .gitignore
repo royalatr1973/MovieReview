@@ -16,6 +16,7 @@ android/
 
 # Environment
 .env
+.env.*
 .env.local
 .env.*.local
 

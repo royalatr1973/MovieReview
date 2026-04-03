@@ -29,7 +29,7 @@ export default function HomeScreen() {
     setRefreshing(true);
     await Promise.all([loadVisits(), loadReviews()]);
     setRefreshing(false);
-  }, []);
+  }, [loadVisits, loadReviews]);
 
   return (
     <FlatList
