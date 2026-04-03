@@ -2,6 +2,14 @@ import { create } from 'zustand';
 import * as Crypto from 'expo-crypto';
 import type { VisitCandidate, PromptState } from '@moviereview/shared';
 import { qualifyVisitLocally } from '../services/visit-qualifier';
+import { getDatabase } from '../db/database';
+import {
+  insertVisit,
+  getRecentVisits,
+  getActiveVisit,
+  updateVisitPromptState as dbUpdateVisitPromptState,
+  type LocalVisit,
+} from '../db/visits';
 
 interface LocalVisitData extends VisitCandidate {
   cinemaName?: string;
@@ -21,14 +29,34 @@ interface VisitState {
   simulateVisitAtCurrentLocation: (coords: { latitude: number; longitude: number } | null) => void;
 }
 
+const USER_ID = 'local-user';
+
 export const useVisitStore = create<VisitState>((set, get) => ({
   visits: [],
   activeVisit: null,
   recentVisits: [],
 
   loadVisits: async () => {
-    // In production, load from SQLite DB
-    // For now, use in-memory state
+    const db = await getDatabase();
+    if (!db) return;
+
+    try {
+      const [recent, active] = await Promise.all([
+        getRecentVisits(db, USER_ID, 20),
+        getActiveVisit(db, USER_ID),
+      ]);
+
+      const visits: LocalVisitData[] = recent;
+      const recentVisits = recent.filter((v) => !!v.exitTime);
+
+      set({
+        visits,
+        recentVisits,
+        activeVisit: active ?? null,
+      });
+    } catch (err) {
+      console.error('[VisitStore] loadVisits failed:', err);
+    }
   },
 
   getVisit: (visitId: string) => {
@@ -36,14 +64,26 @@ export const useVisitStore = create<VisitState>((set, get) => ({
   },
 
   addVisit: (visit: LocalVisitData) => {
+    // Update Zustand immediately (optimistic)
     set((state) => ({
       visits: [visit, ...state.visits],
-      recentVisits: [visit, ...state.recentVisits].slice(0, 20),
+      recentVisits: visit.exitTime
+        ? [visit, ...state.recentVisits].slice(0, 20)
+        : state.recentVisits,
       activeVisit: visit.exitTime ? state.activeVisit : visit,
     }));
+
+    // Persist to SQLite in background
+    getDatabase().then((db) => {
+      if (!db) return;
+      insertVisit(db, visit as LocalVisit).catch((err) =>
+        console.error('[VisitStore] insertVisit failed:', err)
+      );
+    });
   },
 
   updateVisitPromptState: (visitId: string, promptState: PromptState) => {
+    // Update Zustand immediately
     const update = (v: LocalVisitData) =>
       v.visitId === visitId ? { ...v, promptState } : v;
     set((state) => ({
@@ -54,6 +94,14 @@ export const useVisitStore = create<VisitState>((set, get) => ({
           ? { ...state.activeVisit, promptState }
           : state.activeVisit,
     }));
+
+    // Persist to SQLite in background
+    getDatabase().then((db) => {
+      if (!db) return;
+      dbUpdateVisitPromptState(db, visitId, promptState).catch((err) =>
+        console.error('[VisitStore] updateVisitPromptState failed:', err)
+      );
+    });
   },
 
   simulateVisit: () => {
@@ -70,7 +118,7 @@ export const useVisitStore = create<VisitState>((set, get) => ({
 
     const visit: LocalVisitData = {
       visitId,
-      userId: 'local-user',
+      userId: USER_ID,
       cinemaId: 'simulated-cinema',
       cinemaName: 'Simulated Cinema',
       entryTime: entryTime.toISOString(),
@@ -104,7 +152,7 @@ export const useVisitStore = create<VisitState>((set, get) => ({
 
     const visit: LocalVisitData = {
       visitId,
-      userId: 'local-user',
+      userId: USER_ID,
       cinemaId: `current-location-${lat.toFixed(4)}-${lon.toFixed(4)}`,
       cinemaName: `Cinema @ ${lat.toFixed(4)}, ${lon.toFixed(4)}`,
       entryTime: entryTime.toISOString(),

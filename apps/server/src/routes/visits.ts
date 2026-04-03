@@ -1,10 +1,8 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 const router = Router();
 
 router.use(authenticateToken);
@@ -30,7 +28,7 @@ const updateVisitSchema = z.object({
 router.post('/', validate(createVisitSchema), async (req: AuthenticatedRequest, res, next) => {
   try {
     const data = req.body;
-    const userId = req.userId!;
+    const userId: string = req.userId!;
 
     const existing = await prisma.visit.findUnique({
       where: { clientEventId: data.clientEventId },
@@ -51,7 +49,7 @@ router.post('/', validate(createVisitSchema), async (req: AuthenticatedRequest, 
 
 router.get('/', async (req: AuthenticatedRequest, res, next) => {
   try {
-    const userId = req.userId!;
+    const userId: string = req.userId!;
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
     const skip = (page - 1) * limit;
@@ -81,8 +79,10 @@ router.get('/', async (req: AuthenticatedRequest, res, next) => {
 
 router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
+    const id = req.params.id as string;
+    const userId: string = req.userId!;
     const visit = await prisma.visit.findFirst({
-      where: { id: req.params.id, userId: req.userId! },
+      where: { id, userId },
       include: { cinema: true, reviews: { include: { movie: true } } },
     });
 
@@ -99,8 +99,10 @@ router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
 
 router.patch('/:id', validate(updateVisitSchema), async (req: AuthenticatedRequest, res, next) => {
   try {
+    const id = req.params.id as string;
+    const userId: string = req.userId!;
     const visit = await prisma.visit.findFirst({
-      where: { id: req.params.id, userId: req.userId! },
+      where: { id, userId },
     });
 
     if (!visit) {
@@ -109,7 +111,7 @@ router.patch('/:id', validate(updateVisitSchema), async (req: AuthenticatedReque
     }
 
     const updated = await prisma.visit.update({
-      where: { id: req.params.id },
+      where: { id: visit.id },
       data: req.body,
     });
 

@@ -33,4 +33,7 @@ export interface Cinema {
   longitude: number;
   radius: number;
   address: string | null;
+  chain?: string | null;
+  city?: string;
+  active?: boolean;
 }

@@ -1,8 +1,6 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 const router = Router();
 
 router.use(authenticateToken);
@@ -65,18 +63,27 @@ router.get('/search', async (req, res, next) => {
   }
 });
 
-// Get reviews for a specific movie (all users)
+// Get reviews for a specific movie (all users, paginated)
 router.get('/:id/reviews', async (req, res, next) => {
   try {
-    const reviews = await prisma.review.findMany({
-      where: { movieId: req.params.id },
-      include: {
-        user: { select: { displayName: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const skip = (page - 1) * limit;
 
-    res.json({ data: reviews });
+    const [reviews, total] = await Promise.all([
+      prisma.review.findMany({
+        where: { movieId: req.params.id },
+        include: {
+          user: { select: { displayName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.review.count({ where: { movieId: req.params.id } }),
+    ]);
+
+    res.json({ data: reviews, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     next(err);
   }

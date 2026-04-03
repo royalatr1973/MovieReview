@@ -2,51 +2,52 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+/**
+ * Chennai cinema data — same IDs as the mobile app so geofence visit IDs
+ * resolve correctly on the server when syncing.
+ */
 const cinemas = [
-  { name: 'AMC Empire 25', latitude: 40.7567, longitude: -73.9897, radius: 120, address: '234 W 42nd St, New York, NY' },
-  { name: 'Regal Union Square', latitude: 40.7358, longitude: -73.9903, radius: 100, address: '850 Broadway, New York, NY' },
-  { name: 'Alamo Drafthouse Brooklyn', latitude: 40.6864, longitude: -73.9815, radius: 100, address: '445 Albee Square W, Brooklyn, NY' },
-  { name: 'AMC Lincoln Square 13', latitude: 40.7739, longitude: -73.9826, radius: 110, address: '1998 Broadway, New York, NY' },
-  { name: 'IFC Center', latitude: 40.7340, longitude: -74.0003, radius: 80, address: '323 6th Ave, New York, NY' },
-  { name: 'Angelika Film Center', latitude: 40.7256, longitude: -73.9955, radius: 90, address: '18 W Houston St, New York, NY' },
-  { name: 'Nitehawk Cinema Williamsburg', latitude: 40.7119, longitude: -73.9636, radius: 80, address: '136 Metropolitan Ave, Brooklyn, NY' },
-  { name: 'AMC Metreon 16', latitude: 37.7850, longitude: -122.4035, radius: 120, address: '135 4th St, San Francisco, CA' },
-  { name: 'TCL Chinese Theatre', latitude: 34.1022, longitude: -118.3409, radius: 100, address: '6925 Hollywood Blvd, Los Angeles, CA' },
-  { name: 'ArcLight Hollywood', latitude: 34.0983, longitude: -118.3288, radius: 110, address: '6360 Sunset Blvd, Los Angeles, CA' },
-  { name: 'AMC Century City 15', latitude: 34.0574, longitude: -118.4177, radius: 120, address: '10250 Santa Monica Blvd, Los Angeles, CA' },
-  { name: 'Regal LA Live', latitude: 34.0454, longitude: -118.2665, radius: 130, address: '1000 W Olympic Blvd, Los Angeles, CA' },
-  { name: 'AMC River East 21', latitude: 41.8917, longitude: -87.6165, radius: 120, address: '322 E Illinois St, Chicago, IL' },
-  { name: 'Music Box Theatre', latitude: 41.9496, longitude: -87.6645, radius: 80, address: '3733 N Southport Ave, Chicago, IL' },
-  { name: 'Odeon Leicester Square', latitude: 51.5103, longitude: -0.1303, radius: 100, address: '24-26 Leicester Square, London' },
-  { name: 'BFI IMAX', latitude: 51.5047, longitude: -0.1138, radius: 90, address: '1 Charlie Chaplin Walk, London' },
-  { name: 'Curzon Soho', latitude: 51.5135, longitude: -0.1325, radius: 80, address: '99 Shaftesbury Ave, London' },
-  { name: 'PVR Cinemas Juhu', latitude: 19.0987, longitude: 72.8263, radius: 100, address: 'Juhu, Mumbai, India' },
-  { name: 'INOX Nariman Point', latitude: 19.0232, longitude: 72.8225, radius: 90, address: 'Nariman Point, Mumbai, India' },
-  { name: 'Hoyts Melbourne Central', latitude: -37.8108, longitude: 144.9631, radius: 110, address: '211 La Trobe St, Melbourne, Australia' },
-  // Chennai
-  { name: 'Sathyam Cinemas', latitude: 13.0569, longitude: 80.2571, radius: 120, address: '8, Thiru Vi Ka Salai, Royapettah, Chennai' },
-  { name: 'PVR VR Chennai', latitude: 13.0108, longitude: 80.2207, radius: 110, address: 'VR Chennai, Jawaharlal Nehru Road, Anna Nagar, Chennai' },
-  { name: 'INOX National', latitude: 13.0475, longitude: 80.2340, radius: 100, address: '68, Arcot Road, Saligramam, Chennai' },
-  { name: 'AGS Cinemas Navalur', latitude: 12.8449, longitude: 80.2267, radius: 120, address: 'Rajiv Gandhi Salai, Navalur, Chennai' },
-  { name: 'Luxe Cinemas Phoenix', latitude: 13.0133, longitude: 80.2010, radius: 110, address: 'Phoenix MarketCity, Velachery, Chennai' },
-  { name: 'Rohini Silver Screens', latitude: 13.1180, longitude: 80.2006, radius: 100, address: '227, Poonamallee High Road, Koyambedu, Chennai' },
-  { name: 'Mayajaal Multiplex', latitude: 12.8350, longitude: 80.2420, radius: 130, address: 'East Coast Road, Kanathur, Chennai' },
-  { name: 'INOX SKLS Galaxy Mall', latitude: 13.0674, longitude: 80.2370, radius: 100, address: 'Anna Salai, Mount Road, Chennai' },
-  { name: 'PVR ECR', latitude: 12.8760, longitude: 80.2280, radius: 110, address: 'East Coast Road, Sholinganallur, Chennai' },
-  { name: 'Devi Cineplex', latitude: 13.0495, longitude: 80.2500, radius: 90, address: '36, Anna Salai, Mount Road, Chennai' },
-];
-
-const movies = [
-  { title: 'Dune: Part Three', year: 2026, language: 'English', format: 'IMAX' },
-  { title: 'The Batman Part II', year: 2026, language: 'English', format: '2D' },
-  { title: 'Avengers: Secret Wars', year: 2027, language: 'English', format: '3D' },
-  { title: 'Mission: Impossible 8', year: 2025, language: 'English', format: 'IMAX' },
-  { title: 'Spider-Man: Brand New Day', year: 2026, language: 'English', format: '3D' },
-  { title: 'Oppenheimer 2', year: 2026, language: 'English', format: '2D' },
-  { title: 'Parasite 2', year: 2026, language: 'Korean', format: '2D' },
-  { title: 'The French Connection Remake', year: 2026, language: 'English', format: '2D' },
-  { title: 'Interstellar 2', year: 2026, language: 'English', format: 'IMAX' },
-  { title: 'Blade Runner 2099', year: 2026, language: 'English', format: '2D' },
+  { id: 'pvr-phoenix-velachery', name: 'PVR Cinemas – Phoenix MarketCity (Velachery)', latitude: 12.9816, longitude: 80.2209, radius: 120, address: 'Phoenix MarketCity, Velachery Main Road, Velachery, Chennai 600042', chain: 'PVR', city: 'Chennai', active: true },
+  { id: 'pvr-vr-anna-nagar', name: 'PVR Cinemas – VR Chennai (Anna Nagar)', latitude: 13.0878, longitude: 80.2101, radius: 120, address: 'VR Chennai Mall, Jawaharlal Nehru Salai, Anna Nagar West, Chennai 600040', chain: 'PVR', city: 'Chennai', active: true },
+  { id: 'pvr-ecr-tidel', name: 'PVR Cinemas – Forum Vijaya (Vadapalani)', latitude: 13.0524, longitude: 80.2120, radius: 110, address: 'Forum Vijaya Mall, Arcot Road, Vadapalani, Chennai 600026', chain: 'PVR', city: 'Chennai', active: true },
+  { id: 'inox-express-omr', name: 'INOX – Express Avenue (Royapettah)', latitude: 13.0553, longitude: 80.2625, radius: 110, address: 'Express Avenue Mall, Whites Road, Royapettah, Chennai 600014', chain: 'INOX', city: 'Chennai', active: true },
+  { id: 'inox-central-tnagar', name: 'INOX – Palladium (Nungambakkam)', latitude: 13.0567, longitude: 80.2476, radius: 100, address: 'Palladium Mall, Chennai 600097', chain: 'INOX', city: 'Chennai', active: true },
+  { id: 'cinepolis-marina-mall', name: 'Cinépolis – Marina Mall (OMR)', latitude: 12.9349, longitude: 80.2271, radius: 120, address: 'Marina Mall, OMR, Perungudi, Chennai 600096', chain: 'Cinépolis', city: 'Chennai', active: true },
+  { id: 'cinepolis-fun-republic', name: 'Cinépolis – Fun Republic (Anna Nagar)', latitude: 13.0843, longitude: 80.2100, radius: 100, address: 'Fun Republic Mall, Anna Nagar, Chennai 600040', chain: 'Cinépolis', city: 'Chennai', active: true },
+  { id: 'spi-palazzo', name: 'SPI Palazzo – OMR (Sholinganallur)', latitude: 12.9010, longitude: 80.2277, radius: 100, address: 'Palazzo Mall, OMR, Sholinganallur, Chennai 600119', chain: 'SPI', city: 'Chennai', active: true },
+  { id: 'rohini-silver-screens-kk-nagar', name: 'Rohini Silver Screens – KK Nagar', latitude: 13.0387, longitude: 80.1985, radius: 100, address: '1, Jawaharlal Nehru Salai, KK Nagar, Chennai 600078', chain: 'Rohini Silver Screens', city: 'Chennai', active: true },
+  { id: 'rohini-silver-screens-koyambedu', name: 'Rohini Silver Screens – Koyambedu', latitude: 13.0694, longitude: 80.1966, radius: 100, address: 'Koyambedu, Chennai 600107', chain: 'Rohini Silver Screens', city: 'Chennai', active: true },
+  { id: 'sathyam-cinemas', name: 'Sathyam Cinemas (Royapettah)', latitude: 13.0587, longitude: 80.2602, radius: 100, address: '8, Thiru Vi Ka Road, Royapettah, Chennai 600014', chain: 'Sathyam', city: 'Chennai', active: true },
+  { id: 'vettri-theaters', name: 'Vettri Theaters (Koyambedu)', latitude: 13.0696, longitude: 80.1944, radius: 90, address: 'Metrozone, Dr. Ambedkar Road, Koyambedu, Chennai 600107', chain: null, city: 'Chennai', active: true },
+  { id: 'albert-theater', name: 'Albert Theater (Park Town)', latitude: 13.0834, longitude: 80.2764, radius: 90, address: 'Poonamallee High Road, Park Town, Chennai 600003', chain: null, city: 'Chennai', active: true },
+  { id: 'ags-cinemas-omr', name: 'AGS Cinemas – OMR (Perungudi)', latitude: 12.9629, longitude: 80.2418, radius: 100, address: 'OMR, Perungudi, Chennai 600096', chain: 'AGS', city: 'Chennai', active: true },
+  { id: 'ags-cinemas-porur', name: 'AGS Cinemas – Porur', latitude: 13.0360, longitude: 80.1573, radius: 100, address: 'Mount-Poonamallee Road, Porur, Chennai 600116', chain: 'AGS', city: 'Chennai', active: true },
+  { id: 'satyam-cineplex-besant-nagar', name: "Satyam Cineplex – Besant Nagar", latitude: 12.9987, longitude: 80.2709, radius: 90, address: 'Besant Nagar, Chennai 600090', chain: 'Sathyam', city: 'Chennai', active: true },
+  { id: 'escape-cinemas-express-avenue', name: 'Escape Cinemas – Express Avenue', latitude: 13.0551, longitude: 80.2623, radius: 100, address: 'Express Avenue Mall, Level 4, Royapettah, Chennai 600014', chain: 'Escape', city: 'Chennai', active: true },
+  { id: 'mayajaal-ecr', name: 'Mayajaal Multiplex – ECR (Muttukadu)', latitude: 12.8318, longitude: 80.2384, radius: 150, address: 'East Coast Road, Muttukadu, Chennai 603112', chain: null, city: 'Chennai', active: true },
+  { id: 'jsk-theater-arumbakkam', name: 'JSK Theater – Arumbakkam', latitude: 13.0707, longitude: 80.2102, radius: 90, address: 'Arcot Road, Arumbakkam, Chennai 600106', chain: 'JSK', city: 'Chennai', active: true },
+  { id: 'woodlands-theater-royapettah', name: 'Woodlands Theater – Royapettah', latitude: 13.0548, longitude: 80.2633, radius: 90, address: 'Royapettah, Chennai 600014', chain: null, city: 'Chennai', active: true },
+  { id: 'kumaran-theaters-tnagar', name: 'Kumaran Theaters – T. Nagar', latitude: 13.0415, longitude: 80.2339, radius: 90, address: 'Usman Road, T. Nagar, Chennai 600017', chain: null, city: 'Chennai', active: true },
+  { id: 'prasad-imax-chennai', name: 'Prasads IMAX – Express Avenue', latitude: 13.0554, longitude: 80.2624, radius: 100, address: 'Express Avenue, Whites Road, Royapettah, Chennai 600014', chain: 'Prasads', city: 'Chennai', active: true },
+  { id: 'pvr-ampa-skywalk', name: 'PVR Cinemas – Ampa Skywalk (Aminjikarai)', latitude: 13.0763, longitude: 80.2210, radius: 110, address: 'Ampa Skywalk Mall, Nelson Manickam Road, Aminjikarai, Chennai 600029', chain: 'PVR', city: 'Chennai', active: true },
+  { id: 'kaveri-theater-tnagar', name: 'Kaveri Theater – T. Nagar', latitude: 13.0444, longitude: 80.2300, radius: 90, address: 'GN Chetty Road, T. Nagar, Chennai 600017', chain: null, city: 'Chennai', active: true },
+  { id: 'devi-theater-tnagar', name: 'Devi Theater – T. Nagar', latitude: 13.0399, longitude: 80.2361, radius: 90, address: 'Thyagaraya Road, T. Nagar, Chennai 600017', chain: null, city: 'Chennai', active: true },
+  { id: 'kamala-theaters-ashok-nagar', name: 'Kamala Theaters – Ashok Nagar', latitude: 13.0327, longitude: 80.2185, radius: 90, address: '10th Avenue, Ashok Nagar, Chennai 600083', chain: null, city: 'Chennai', active: true },
+  { id: 'galaxy-theater-anna-nagar', name: 'Galaxy Theater – Anna Nagar East', latitude: 13.0878, longitude: 80.2189, radius: 90, address: 'Anna Nagar East, Chennai 600102', chain: null, city: 'Chennai', active: true },
+  { id: 'abirami-megaplex-perambur', name: 'Abirami Megaplex – Perambur', latitude: 13.1210, longitude: 80.2430, radius: 100, address: 'Perambur Barracks Road, Perambur, Chennai 600011', chain: null, city: 'Chennai', active: true },
+  { id: 'vetri-padmanabha-nagar', name: 'Vetri Theater – Padmanabha Nagar (Adyar)', latitude: 13.0044, longitude: 80.2541, radius: 90, address: 'Padmanabha Nagar, Adyar, Chennai 600020', chain: null, city: 'Chennai', active: true },
+  { id: 'archana-theater-vadapalani', name: 'Archana Theater – Vadapalani', latitude: 13.0518, longitude: 80.2122, radius: 90, address: 'Arcot Road, Vadapalani, Chennai 600026', chain: null, city: 'Chennai', active: true },
+  { id: 'ram-theater-perambur', name: 'Ram Theater – Perambur', latitude: 13.1163, longitude: 80.2379, radius: 90, address: 'Perambur High Road, Perambur, Chennai 600011', chain: null, city: 'Chennai', active: true },
+  { id: 'vasan-theater-tnagar', name: 'Vasan Theater – T. Nagar', latitude: 13.0421, longitude: 80.2341, radius: 90, address: 'Bharat Mall, Usman Road, T. Nagar, Chennai 600017', chain: null, city: 'Chennai', active: true },
+  { id: 'inox-velachery', name: 'INOX – Vijaya Forum (Velachery)', latitude: 12.9748, longitude: 80.2181, radius: 110, address: 'Forum Vijaya Mall, NSK Salai, Arcot Road, Vadapalani, Chennai 600026', chain: 'INOX', city: 'Chennai', active: true },
+  { id: 'cinepolis-annanagar-towers', name: 'Cinépolis – The Chennai Central (Poonamallee)', latitude: 13.0712, longitude: 80.1826, radius: 110, address: 'Chennai Central Mall, Poonamallee High Road, Chennai 600012', chain: 'Cinépolis', city: 'Chennai', active: true },
+  { id: 'pvr-kovilambakkam', name: 'PVR Cinemas – Grand Square (Kovilambakkam)', latitude: 12.9474, longitude: 80.1999, radius: 100, address: 'Grand Square Mall, Kovilambakkam, Chennai 600117', chain: 'PVR', city: 'Chennai', active: true },
+  { id: 'sathyam-cinemal-urapakkam', name: 'Sathyam Cinemas – Urapakkam', latitude: 12.8813, longitude: 80.0742, radius: 100, address: 'GST Road, Urapakkam, Chennai 603210', chain: 'Sathyam', city: 'Chennai', active: true },
+  { id: 'pvr-luxe-omr', name: 'PVR Luxe – OMR (One & Only Mall)', latitude: 12.9225, longitude: 80.2268, radius: 100, address: 'One & Only Mall, OMR, Navalur, Chennai 600130', chain: 'PVR', city: 'Chennai', active: true },
+  { id: 'screen-x-qube', name: 'Qube Cinema – T. Nagar', latitude: 13.0447, longitude: 80.2297, radius: 90, address: 'G.N. Chetty Road, T. Nagar, Chennai 600017', chain: 'Qube', city: 'Chennai', active: true },
+  { id: 'symphony-theater-padi', name: 'Symphony Theater – Padi', latitude: 13.1007, longitude: 80.2149, radius: 90, address: 'Padi, Chennai 600050', chain: null, city: 'Chennai', active: true },
+  { id: 'maharaja-theater-triplicane', name: 'Maharaja Theater – Triplicane', latitude: 13.0573, longitude: 80.2741, radius: 90, address: 'Triplicane High Road, Triplicane, Chennai 600005', chain: null, city: 'Chennai', active: true },
+  { id: 'pilot-theater-egmore', name: 'Pilot Theater – Egmore', latitude: 13.0783, longitude: 80.2619, radius: 90, address: 'Egmore, Chennai 600008', chain: null, city: 'Chennai', active: true },
 ];
 
 async function main() {
@@ -54,21 +55,21 @@ async function main() {
 
   for (const cinema of cinemas) {
     await prisma.cinema.upsert({
-      where: { id: cinema.name.toLowerCase().replace(/\s+/g, '-') },
-      update: cinema,
-      create: { id: cinema.name.toLowerCase().replace(/\s+/g, '-'), ...cinema },
+      where: { id: cinema.id },
+      update: {
+        name: cinema.name,
+        latitude: cinema.latitude,
+        longitude: cinema.longitude,
+        radius: cinema.radius,
+        address: cinema.address,
+        chain: cinema.chain,
+        city: cinema.city,
+        active: cinema.active,
+      },
+      create: cinema,
     });
   }
-  console.log(`Seeded ${cinemas.length} cinemas`);
-
-  for (const movie of movies) {
-    await prisma.movie.upsert({
-      where: { id: movie.title.toLowerCase().replace(/\s+/g, '-') },
-      update: movie,
-      create: { id: movie.title.toLowerCase().replace(/\s+/g, '-'), ...movie },
-    });
-  }
-  console.log(`Seeded ${movies.length} movies`);
+  console.log(`✓ Seeded ${cinemas.length} cinemas`);
 
   console.log('Seeding complete.');
 }

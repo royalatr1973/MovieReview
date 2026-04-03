@@ -4,6 +4,10 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/stores/auth';
 import { useVisitStore } from '../src/stores/visits';
+import { getDatabase } from '../src/db/database';
+import { bulkUpsertCinemas, getCinemaCount, getActiveCinemas } from '../src/db/cinemas';
+import { CHENNAI_CINEMAS } from '../src/data/chennai-cinemas';
+import { runSync } from '../src/services/sync';
 
 // Import geofence task definition so it registers at top level
 if (Platform.OS !== 'web') {
@@ -23,7 +27,7 @@ function pickUpPendingVisits() {
     const recentDupe = visits.find(
       (v) =>
         v.cinemaId === pv.cinemaId &&
-        v.promptState !== 'discarded' &&
+        v.promptState !== 'dismissed' &&
         now - new Date(v.createdAt).getTime() < 4 * 60 * 60 * 1000
     );
     if (recentDupe) continue;
@@ -48,6 +52,43 @@ function pickUpPendingVisits() {
   return pending[pending.length - 1];
 }
 
+/** Seed the cinema cache on first launch and auto-register geofences. */
+async function initializeCinemasAndGeofences(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  const db = await getDatabase();
+  if (!db) return;
+
+  try {
+    // Seed cinemas if the local cache is empty
+    const count = await getCinemaCount(db);
+    if (count === 0) {
+      await bulkUpsertCinemas(db, CHENNAI_CINEMAS);
+      console.log(`[Init] Seeded ${CHENNAI_CINEMAS.length} Chennai cinemas`);
+    }
+
+    // Register geofences using whatever is active in the DB
+    const { registerGeofences } = require('../src/services/geofence');
+    const cinemas = await getActiveCinemas(db);
+    if (cinemas.length > 0) {
+      const cinemaList = cinemas.map((c) => ({
+        id: c.id,
+        name: c.name,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        radius: c.radius,
+        address: c.address ?? undefined,
+        chain: c.chain ?? undefined,
+        city: c.city,
+        active: c.active,
+      }));
+      await registerGeofences(cinemaList);
+    }
+  } catch (err) {
+    console.error('[Init] Failed to seed cinemas/geofences:', err);
+  }
+}
+
 export default function RootLayout() {
   const { loadToken } = useAuthStore();
   const router = useRouter();
@@ -57,7 +98,13 @@ export default function RootLayout() {
     loadToken();
   }, []);
 
+  // Initialize DB, seed cinemas, register geofences on first launch
+  useEffect(() => {
+    initializeCinemasAndGeofences();
+  }, []);
+
   // Pick up pending visits on app launch and when app comes to foreground
+  // Also trigger a background sync pass each time
   useEffect(() => {
     // Check on mount
     const timeout = setTimeout(() => {
@@ -65,7 +112,9 @@ export default function RootLayout() {
       if (visit) {
         router.push(`/visit/${visit.visitId}/confirm`);
       }
-    }, 1000);
+      // Fire sync after a short delay to let auth token load first
+      runSync();
+    }, 1500);
 
     // Check when app returns to foreground
     const subscription = AppState.addEventListener('change', (state) => {
@@ -74,6 +123,7 @@ export default function RootLayout() {
         if (visit) {
           router.push(`/visit/${visit.visitId}/confirm`);
         }
+        runSync();
       }
     });
 

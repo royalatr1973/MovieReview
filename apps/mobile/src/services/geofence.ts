@@ -1,9 +1,11 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GEOFENCE_MAX_REGIONS } from '@moviereview/shared';
 import type { Cinema } from '@moviereview/shared';
 
 export const GEOFENCE_TASK_NAME = 'cinema-geofence-task';
+const CINEMA_NAME_MAP_KEY = '@cinereview/cinema_name_map';
 
 export interface GeofenceEvent {
   cinemaId: string;
@@ -14,7 +16,29 @@ export interface GeofenceEvent {
   longitude: number;
 }
 
-// Track enter times for dwell calculation
+/** Persist a cinemaId→name map so the background task can read names. */
+export async function saveCinemaNameMap(
+  cinemas: Array<{ id: string; name: string }>
+): Promise<void> {
+  const map: Record<string, string> = {};
+  for (const c of cinemas) {
+    map[c.id] = c.name;
+  }
+  await AsyncStorage.setItem(CINEMA_NAME_MAP_KEY, JSON.stringify(map));
+}
+
+/** Read the persisted cinemaId→name map (callable from background task). */
+async function getCinemaNameMap(): Promise<Record<string, string>> {
+  try {
+    const raw = await AsyncStorage.getItem(CINEMA_NAME_MAP_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+// Track enter times for dwell calculation (in-process only; background task
+// may be a fresh process after device restart – dwell will default to 1 min)
 const enterTimes: Record<string, string> = {};
 
 // Define the background task safely
@@ -31,7 +55,8 @@ try {
     };
 
     const cinemaId = region.identifier!;
-    const cinemaName = region.identifier!;
+    const nameMap = await getCinemaNameMap();
+    const cinemaName = nameMap[cinemaId] ?? cinemaId;
     const now = new Date().toISOString();
 
     if (eventType === Location.GeofencingEventType.Enter) {
@@ -53,7 +78,6 @@ try {
       const visitId = `visit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       try {
-        // Store pending visit for the app to pick up
         if (!global._pendingVisits) {
           global._pendingVisits = [];
         }
@@ -68,7 +92,6 @@ try {
           longitude: region.longitude,
         });
 
-        // Send notification
         const Notifications = require('expo-notifications');
         await Notifications.scheduleNotificationAsync({
           content: {
@@ -95,7 +118,12 @@ export async function registerGeofences(cinemas: Cinema[]): Promise<void> {
     return;
   }
 
-  const regions = cinemas.slice(0, GEOFENCE_MAX_REGIONS).map((cinema) => ({
+  const selected = cinemas.slice(0, GEOFENCE_MAX_REGIONS);
+
+  // Persist name map before registering so background task can look up names
+  await saveCinemaNameMap(selected.map((c) => ({ id: c.id, name: c.name })));
+
+  const regions = selected.map((cinema) => ({
     identifier: cinema.id,
     latitude: cinema.latitude,
     longitude: cinema.longitude,

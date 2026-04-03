@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -94,8 +94,6 @@ export default function HomeScreen() {
     />
   );
 }
-
-import { useState } from 'react';
 
 const styles = StyleSheet.create({
   container: {

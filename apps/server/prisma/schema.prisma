@@ -19,13 +19,18 @@ model User {
 }
 
 model Cinema {
-  id        String  @id @default(uuid())
+  id        String  @id
   name      String
   latitude  Float
   longitude Float
   radius    Int     @default(100)
   address   String?
+  chain     String?
+  city      String  @default("Chennai")
+  active    Boolean @default(true)
   visits    Visit[]
+
+  @@index([city, active])
 }
 
 model Visit {
@@ -50,14 +55,18 @@ model Visit {
 }
 
 model Movie {
-  id       String   @id @default(uuid())
-  title    String
-  year     Int?
-  language String?
-  format   String?
-  reviews  Review[]
+  id            String   @id
+  title         String
+  year          Int?
+  language      String?
+  format        String?
+  tmdbId        Int?
+  posterUrl     String?
+  userSubmitted Boolean  @default(false)
+  reviews       Review[]
 
   @@index([title])
+  @@index([tmdbId])
 }
 
 model Review {

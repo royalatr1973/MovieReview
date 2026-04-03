@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { initializeDatabase } from './schema';
+import { initializeDatabase, applyMigrationV2 } from './schema';
 
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   // Create migrations tracking table
@@ -22,6 +22,8 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
     await db.runAsync('INSERT INTO schema_version (version) VALUES (?)', 1);
   }
 
-  // Future migrations go here:
-  // if (currentVersion < 2) { ... }
+  if (currentVersion < 2) {
+    await applyMigrationV2(db);
+    await db.runAsync('INSERT INTO schema_version (version) VALUES (?)', 2);
+  }
 }

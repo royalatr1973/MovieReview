@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,130 +6,149 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../../src/services/api-client';
+import { useMovieStore } from '../../src/stores/movies';
+import type { LocalMovie } from '../../src/db/movies';
 
-interface MovieWithStats {
-  id: string;
-  title: string;
-  year: number | null;
-  language: string | null;
-  format: string | null;
-  averageRating: number | null;
-  reviewCount: number;
+// ── Animated rating display (Phase 4B) ────────────────────────────────────
+function AnimatedRating({ value }: { value: number | null }) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const prevValue = useRef(value);
+
+  useEffect(() => {
+    if (prevValue.current !== value && value !== null) {
+      prevValue.current = value;
+      // Zoom-in then settle
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.35,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 4,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [value]);
+
+  if (value === null) return <Text style={styles.noReviews}>No reviews yet</Text>;
+
+  return (
+    <Animated.Text
+      style={[styles.ratingText, { transform: [{ scale: scaleAnim }] }]}
+    >
+      {value.toFixed(1)}
+    </Animated.Text>
+  );
 }
 
-// Sample data for offline/demo use
-const SAMPLE_MOVIES: MovieWithStats[] = [
-  { id: 'dune-part-three', title: 'Dune: Part Three', year: 2026, language: 'English', format: 'IMAX', averageRating: 4.5, reviewCount: 12 },
-  { id: 'the-batman-part-ii', title: 'The Batman Part II', year: 2026, language: 'English', format: '2D', averageRating: 4.2, reviewCount: 8 },
-  { id: 'avengers-secret-wars', title: 'Avengers: Secret Wars', year: 2027, language: 'English', format: '3D', averageRating: 3.8, reviewCount: 25 },
-  { id: 'mission-impossible-8', title: 'Mission: Impossible 8', year: 2025, language: 'English', format: 'IMAX', averageRating: 4.6, reviewCount: 18 },
-  { id: 'spider-man-brand-new-day', title: 'Spider-Man: Brand New Day', year: 2026, language: 'English', format: '3D', averageRating: 4.0, reviewCount: 15 },
-  { id: 'oppenheimer-2', title: 'Oppenheimer 2', year: 2026, language: 'English', format: '2D', averageRating: 4.7, reviewCount: 6 },
-  { id: 'parasite-2', title: 'Parasite 2', year: 2026, language: 'Korean', format: '2D', averageRating: 4.4, reviewCount: 9 },
-  { id: 'the-french-connection-remake', title: 'The French Connection Remake', year: 2026, language: 'English', format: '2D', averageRating: 3.5, reviewCount: 4 },
-  { id: 'interstellar-2', title: 'Interstellar 2', year: 2026, language: 'English', format: 'IMAX', averageRating: 4.8, reviewCount: 22 },
-  { id: 'blade-runner-2099', title: 'Blade Runner 2099', year: 2026, language: 'English', format: '2D', averageRating: 4.3, reviewCount: 7 },
-];
+// ── Movie card ─────────────────────────────────────────────────────────────
+function MovieCard({
+  item,
+  onPress,
+}: {
+  item: LocalMovie;
+  onPress: () => void;
+}) {
+  const rounded = Math.round(item.averageRating ?? 0);
 
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      onPress={onPress}
+    >
+      <View style={styles.cardHeader}>
+        <Text style={styles.movieTitle} numberOfLines={1}>
+          {item.title}
+        </Text>
+        {item.year ? <Text style={styles.year}>{item.year}</Text> : null}
+      </View>
+
+      <View style={styles.statsRow}>
+        {item.reviewCount > 0 ? (
+          <>
+            {/* Star row */}
+            <View style={styles.stars}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Ionicons
+                  key={star}
+                  name={star <= rounded ? 'star' : 'star-outline'}
+                  size={14}
+                  color="#fbbf24"
+                />
+              ))}
+            </View>
+            {/* Animated numeric rating */}
+            <AnimatedRating value={item.averageRating} />
+            <Text style={styles.reviewCountText}>
+              ({item.reviewCount}{' '}
+              {item.reviewCount === 1 ? 'review' : 'reviews'})
+            </Text>
+          </>
+        ) : (
+          <AnimatedRating value={null} />
+        )}
+      </View>
+
+      {item.language ? (
+        <Text style={styles.meta}>
+          {item.language}
+          {item.format ? ` · ${item.format}` : ''}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
+// ── Screen ─────────────────────────────────────────────────────────────────
 export default function MoviesScreen() {
   const router = useRouter();
-  const [movies, setMovies] = useState<MovieWithStats[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const loadMovies = useCallback(async () => {
-    try {
-      const response = await api.get<{ data: MovieWithStats[] }>('/movies');
-      setMovies(response.data);
-    } catch {
-      // Offline or server down - use sample data
-      setMovies(SAMPLE_MOVIES);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { movies, loading, loadMovies } = useMovieStore();
 
   useEffect(() => {
     loadMovies();
   }, []);
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
     await loadMovies();
-    setRefreshing(false);
   }, []);
-
-  const renderStars = (rating: number | null) => {
-    if (rating === null) return null;
-    const rounded = Math.round(rating);
-    return (
-      <View style={styles.stars}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Ionicons
-            key={star}
-            name={star <= rounded ? 'star' : 'star-outline'}
-            size={14}
-            color="#fbbf24"
-          />
-        ))}
-      </View>
-    );
-  };
 
   return (
     <FlatList
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e94560" />
+        <RefreshControl
+          refreshing={loading}
+          onRefresh={onRefresh}
+          tintColor="#e94560"
+        />
       }
       data={movies}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <Pressable
-          style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+        <MovieCard
+          item={item}
           onPress={() => router.push(`/movie/${item.id}`)}
-        >
-          <View style={styles.cardHeader}>
-            <Text style={styles.movieTitle} numberOfLines={1}>
-              {item.title}
-            </Text>
-            {item.year && <Text style={styles.year}>{item.year}</Text>}
-          </View>
-
-          <View style={styles.statsRow}>
-            {item.reviewCount > 0 ? (
-              <>
-                {renderStars(item.averageRating)}
-                <Text style={styles.ratingText}>
-                  {item.averageRating?.toFixed(1)}
-                </Text>
-                <Text style={styles.reviewCountText}>
-                  ({item.reviewCount} {item.reviewCount === 1 ? 'review' : 'reviews'})
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.noReviews}>No reviews yet</Text>
-            )}
-          </View>
-
-          {item.language && (
-            <Text style={styles.meta}>
-              {item.language}{item.format ? ` · ${item.format}` : ''}
-            </Text>
-          )}
-        </Pressable>
+        />
       )}
       ListEmptyComponent={
         <View style={styles.empty}>
           <Ionicons name="film-outline" size={48} color="#a0a0b0" />
           <Text style={styles.emptyText}>
-            {loading ? 'Loading movies...' : 'No movies found'}
+            {loading ? 'Loading movies…' : 'No movies yet'}
           </Text>
+          {!loading && (
+            <Text style={styles.emptySubtext}>
+              Movies appear here after you submit a review
+            </Text>
+          )}
         </View>
       }
     />
@@ -173,17 +192,16 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     marginBottom: 4,
   },
   stars: {
     flexDirection: 'row',
-    marginRight: 6,
   },
   ratingText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#fbbf24',
-    marginRight: 6,
   },
   reviewCountText: {
     fontSize: 13,
@@ -207,5 +225,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#a0a0b0',
     marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

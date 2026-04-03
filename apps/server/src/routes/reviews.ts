@@ -1,10 +1,8 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 const router = Router();
 
 router.use(authenticateToken);
@@ -29,7 +27,7 @@ const updateReviewSchema = z.object({
 router.post('/', validate(createReviewSchema), async (req: AuthenticatedRequest, res, next) => {
   try {
     const data = req.body;
-    const userId = req.userId!;
+    const userId: string = req.userId!;
 
     // Idempotency check
     const existing = await prisma.review.findUnique({
@@ -65,7 +63,7 @@ router.post('/', validate(createReviewSchema), async (req: AuthenticatedRequest,
 
 router.get('/', async (req: AuthenticatedRequest, res, next) => {
   try {
-    const userId = req.userId!;
+    const userId: string = req.userId!;
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
     const skip = (page - 1) * limit;
@@ -95,8 +93,10 @@ router.get('/', async (req: AuthenticatedRequest, res, next) => {
 
 router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
+    const id = req.params.id as string;
+    const userId: string = req.userId!;
     const review = await prisma.review.findFirst({
-      where: { id: req.params.id, userId: req.userId! },
+      where: { id, userId },
       include: { movie: true, visit: { include: { cinema: true } } },
     });
 
@@ -113,8 +113,10 @@ router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
 
 router.patch('/:id', validate(updateReviewSchema), async (req: AuthenticatedRequest, res, next) => {
   try {
+    const id = req.params.id as string;
+    const userId: string = req.userId!;
     const review = await prisma.review.findFirst({
-      where: { id: req.params.id, userId: req.userId! },
+      where: { id, userId },
     });
 
     if (!review) {
@@ -131,7 +133,7 @@ router.patch('/:id', validate(updateReviewSchema), async (req: AuthenticatedRequ
     }
 
     const updated = await prisma.review.update({
-      where: { id: req.params.id },
+      where: { id: review.id },
       data: { ...req.body, editedAt: new Date() },
     });
 
@@ -143,8 +145,10 @@ router.patch('/:id', validate(updateReviewSchema), async (req: AuthenticatedRequ
 
 router.delete('/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
+    const id = req.params.id as string;
+    const userId: string = req.userId!;
     const review = await prisma.review.findFirst({
-      where: { id: req.params.id, userId: req.userId! },
+      where: { id, userId },
     });
 
     if (!review) {
@@ -152,7 +156,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res, next) => {
       return;
     }
 
-    await prisma.review.delete({ where: { id: req.params.id } });
+    await prisma.review.delete({ where: { id: review.id } });
     res.status(204).send();
   } catch (err) {
     next(err);
