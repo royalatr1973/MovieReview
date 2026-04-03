@@ -7,6 +7,7 @@ import { reviewsRouter } from './routes/reviews';
 import { moviesRouter } from './routes/movies';
 import { cinemasRouter } from './routes/cinemas';
 import { syncRouter } from './routes/sync';
+import { adminRouter } from './routes/admin';
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/reviews', reviewsRouter);
 app.use('/api/movies', moviesRouter);
 app.use('/api/cinemas', cinemasRouter);
 app.use('/api/sync', syncRouter);
+app.use('/api/admin', adminRouter);
 
 app.use(errorHandler);
 

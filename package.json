@@ -10,6 +10,7 @@
     "server:dev": "npm run dev --workspace=apps/server",
     "mobile:start": "npm run start --workspace=apps/mobile",
     "shared:build": "npm run build --workspace=packages/shared",
+    "admin:dev": "npm run dev --workspace=apps/admin",
     "test": "npm run test --workspaces --if-present"
   }
 }
