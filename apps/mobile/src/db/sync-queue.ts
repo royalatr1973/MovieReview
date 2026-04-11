@@ -32,14 +32,27 @@ export async function getPendingItems(
   db: SQLiteDatabase,
   limit = 50
 ): Promise<SyncQueueItem[]> {
+  // Order visits before reviews so the server has the visit when the review arrives
   const rows = await db.getAllAsync<any>(
     `SELECT * FROM sync_queue
      WHERE sync_status = 'pending' AND retry_count < ?
-     ORDER BY created_at ASC LIMIT ?`,
+     ORDER BY
+       CASE entity_type WHEN 'visit' THEN 0 ELSE 1 END,
+       created_at ASC
+     LIMIT ?`,
     SYNC_MAX_RETRIES,
     limit
   );
   return rows.map(mapRow);
+}
+
+/** Reset failed items back to pending so they retry (e.g. after a bug fix) */
+export async function resetFailedItems(db: SQLiteDatabase): Promise<number> {
+  const result = await db.runAsync(
+    `UPDATE sync_queue SET sync_status = 'pending', retry_count = 0
+     WHERE sync_status = 'failed'`
+  );
+  return result.changes;
 }
 
 export async function markSynced(

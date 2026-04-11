@@ -167,6 +167,9 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       }
     }
 
+    // Clear selected movie so it doesn't carry over to the next review
+    set({ selectedMovie: null });
+
     // Fire background sync (uploads the queued item via /sync/batch)
     runSync();
   },

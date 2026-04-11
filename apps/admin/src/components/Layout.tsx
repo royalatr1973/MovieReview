@@ -1,11 +1,14 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { setToken } from '../lib/api';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
 const navItems = [
   { to: '/', label: 'Dashboard' },
   { to: '/reviews', label: 'Reviews' },
-  { to: '/cinemas', label: 'Cinemas' },
   { to: '/movies', label: 'Movies' },
+  { to: '/cinemas', label: 'Cinemas' },
+  { to: '/users', label: 'Users' },
 ];
 
 export default function Layout() {
@@ -35,9 +38,19 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        <button onClick={handleLogout} style={logoutStyle}>
-          Logout
-        </button>
+        <div style={{ marginTop: 'auto' }}>
+          <div style={{ borderTop: '1px solid #374151', paddingTop: 12, marginBottom: 12 }}>
+            <a href={`${API_BASE}/admin/export/reviews`} style={{ ...linkStyle, display: 'block', fontSize: 12 }} target="_blank" rel="noopener">
+              Export Reviews CSV
+            </a>
+            <a href={`${API_BASE}/admin/export/visits`} style={{ ...linkStyle, display: 'block', fontSize: 12 }} target="_blank" rel="noopener">
+              Export Visits CSV
+            </a>
+          </div>
+          <button onClick={handleLogout} style={logoutStyle}>
+            Logout
+          </button>
+        </div>
       </aside>
       <main style={{ flex: 1, padding: 24, backgroundColor: '#f9fafb' }}>
         <Outlet />

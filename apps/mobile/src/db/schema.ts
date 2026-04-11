@@ -89,6 +89,25 @@ export async function initializeDatabase(db: SQLiteDatabase): Promise<void> {
   `);
 }
 
+export async function applyMigrationV3(db: SQLiteDatabase): Promise<void> {
+  // Watchlist table
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS watchlist (
+      movie_id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      year INTEGER,
+      language TEXT,
+      poster_url TEXT,
+      added_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Sync pending count cache (for offline queue indicator)
+  await db.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_sync_queue_pending ON sync_queue(sync_status) WHERE sync_status = 'pending';
+  `);
+}
+
 export async function applyMigrationV2(db: SQLiteDatabase): Promise<void> {
   // Add new columns to cinemas_cache (for upgrades from v1)
   const cinemaCols = await db.getAllAsync<{ name: string }>(

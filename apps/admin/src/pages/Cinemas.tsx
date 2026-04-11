@@ -14,6 +14,8 @@ interface Cinema {
   _count?: { visits: number };
 }
 
+type SortField = 'name' | 'visits' | 'city' | 'chain';
+
 const emptyCinema = {
   id: '', name: '', latitude: '', longitude: '',
   radius: '100', address: '', chain: '', city: 'Chennai',
@@ -27,6 +29,9 @@ export default function Cinemas() {
   const [editing, setEditing] = useState<Cinema | null>(null);
   const [form, setForm] = useState(emptyCinema);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [sortField, setSortField] = useState<SortField>('visits');
+  const [sortAsc, setSortAsc] = useState(false);
 
   useEffect(() => {
     loadCinemas();
@@ -116,13 +121,62 @@ export default function Cinemas() {
     }
   }
 
+  function handleSort(field: SortField) {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(field === 'name' || field === 'city'); // alphabetic = asc default
+    }
+  }
+
+  // Filter + sort
+  const lowerSearch = search.toLowerCase();
+  const filtered = cinemas
+    .filter(
+      (c) =>
+        search.length === 0 ||
+        c.name.toLowerCase().includes(lowerSearch) ||
+        (c.chain ?? '').toLowerCase().includes(lowerSearch) ||
+        c.city.toLowerCase().includes(lowerSearch)
+    )
+    .sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case 'name':
+          cmp = a.name.localeCompare(b.name);
+          break;
+        case 'visits':
+          cmp = (a._count?.visits ?? 0) - (b._count?.visits ?? 0);
+          break;
+        case 'city':
+          cmp = a.city.localeCompare(b.city);
+          break;
+        case 'chain':
+          cmp = (a.chain ?? '').localeCompare(b.chain ?? '');
+          break;
+      }
+      return sortAsc ? cmp : -cmp;
+    });
+
+  const sortIcon = (field: SortField) =>
+    sortField === field ? (sortAsc ? ' \u25B2' : ' \u25BC') : '';
+
   if (loading) return <div>Loading...</div>;
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h1 style={{ margin: 0, fontSize: 22 }}>Cinemas ({cinemas.length})</h1>
-        <button onClick={openAdd} style={addBtn}>+ Add Cinema</button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <input
+            placeholder="Search cinemas..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={searchInputStyle}
+          />
+          <button onClick={openAdd} style={addBtn}>+ Add Cinema</button>
+        </div>
       </div>
 
       {error && (
@@ -159,19 +213,29 @@ export default function Cinemas() {
       <table style={tableStyle}>
         <thead>
           <tr>
-            <th style={thStyle}>Name</th>
-            <th style={thStyle}>Chain</th>
-            <th style={thStyle}>City</th>
+            <th style={thStyle}>#</th>
+            <th style={{ ...thStyle, cursor: 'pointer' }} onClick={() => handleSort('name')}>
+              Name{sortIcon('name')}
+            </th>
+            <th style={{ ...thStyle, cursor: 'pointer' }} onClick={() => handleSort('chain')}>
+              Chain{sortIcon('chain')}
+            </th>
+            <th style={{ ...thStyle, cursor: 'pointer' }} onClick={() => handleSort('city')}>
+              City{sortIcon('city')}
+            </th>
             <th style={thStyle}>Lat/Lng</th>
             <th style={thStyle}>Radius</th>
-            <th style={thStyle}>Visits</th>
+            <th style={{ ...thStyle, cursor: 'pointer' }} onClick={() => handleSort('visits')}>
+              Visits{sortIcon('visits')}
+            </th>
             <th style={thStyle}>Status</th>
             <th style={thStyle}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {cinemas.map((c) => (
+          {filtered.map((c, i) => (
             <tr key={c.id} style={{ opacity: c.active ? 1 : 0.5 }}>
+              <td style={{ ...tdStyle, color: '#9ca3af', fontWeight: 600 }}>{i + 1}</td>
               <td style={tdStyle}>{c.name}</td>
               <td style={tdStyle}>{c.chain || '-'}</td>
               <td style={tdStyle}>{c.city}</td>
@@ -181,7 +245,9 @@ export default function Cinemas() {
                 </span>
               </td>
               <td style={tdStyle}>{c.radius}m</td>
-              <td style={tdStyle}>{c._count?.visits ?? 0}</td>
+              <td style={tdStyle}>
+                <strong>{c._count?.visits ?? 0}</strong>
+              </td>
               <td style={tdStyle}>
                 <span style={{
                   ...statusBadge,
@@ -199,6 +265,13 @@ export default function Cinemas() {
               </td>
             </tr>
           ))}
+          {filtered.length === 0 && (
+            <tr>
+              <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: 24, color: '#9ca3af' }}>
+                {search ? `No cinemas matching "${search}"` : 'No cinemas yet'}
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -211,9 +284,12 @@ const tableStyle: React.CSSProperties = {
 };
 const thStyle: React.CSSProperties = {
   textAlign: 'left', padding: '10px 12px', backgroundColor: '#f9fafb',
-  borderBottom: '1px solid #e5e7eb', color: '#374151', fontWeight: 600,
+  borderBottom: '1px solid #e5e7eb', color: '#374151', fontWeight: 600, whiteSpace: 'nowrap',
 };
 const tdStyle: React.CSSProperties = { padding: '10px 12px', borderBottom: '1px solid #f3f4f6' };
+const searchInputStyle: React.CSSProperties = {
+  padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, width: 220,
+};
 const addBtn: React.CSSProperties = {
   padding: '8px 16px', backgroundColor: '#2563eb', color: '#fff',
   border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13,

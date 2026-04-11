@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -22,19 +22,42 @@ const COLORS = ['#2563eb', '#7c3aed', '#db2777', '#ea580c', '#65a30d'];
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const loadStats = useCallback(() => {
+    setRefreshing(true);
+    api<Stats>('/admin/stats')
+      .then((data) => { setStats(data); setLastUpdated(new Date()); })
+      .catch((e) => setError(e.message))
+      .finally(() => setRefreshing(false));
+  }, []);
 
   useEffect(() => {
-    api<Stats>('/admin/stats')
-      .then(setStats)
-      .catch((e) => setError(e.message));
-  }, []);
+    loadStats();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(loadStats, 30_000);
+    return () => clearInterval(interval);
+  }, [loadStats]);
 
   if (error) return <div style={{ color: '#dc2626' }}>Error: {error}</div>;
   if (!stats) return <div>Loading...</div>;
 
   return (
     <div>
-      <h1 style={{ margin: '0 0 24px', fontSize: 22 }}>Dashboard</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h1 style={{ margin: 0, fontSize: 22 }}>Dashboard</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {lastUpdated && (
+            <span style={{ fontSize: 12, color: '#9ca3af' }}>
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <button onClick={loadStats} disabled={refreshing} style={{ padding: '6px 14px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 13 }}>
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+      </div>
 
       {/* Summary cards */}
       <div style={cardGrid}>
@@ -92,17 +115,22 @@ export default function Dashboard() {
           <table style={tableStyle}>
             <thead>
               <tr>
+                <th style={thStyle}>#</th>
                 <th style={thStyle}>Title</th>
                 <th style={thStyle}>Reviews</th>
                 <th style={thStyle}>Avg Rating</th>
               </tr>
             </thead>
             <tbody>
-              {stats.topMovies.map((m) => (
+              {stats.topMovies.map((m, i) => (
                 <tr key={m.id}>
+                  <td style={{ ...tdStyle, color: '#9ca3af', fontWeight: 600 }}>{i + 1}</td>
                   <td style={tdStyle}>{m.title}</td>
                   <td style={tdStyle}>{m.reviewCount}</td>
-                  <td style={tdStyle}>{m.avgRating.toFixed(1)}</td>
+                  <td style={tdStyle}>
+                    <span style={{ color: '#fbbf24' }}>{'★'.repeat(Math.round(m.avgRating))}</span>
+                    {' '}{m.avgRating.toFixed(1)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -114,15 +142,17 @@ export default function Dashboard() {
           <table style={tableStyle}>
             <thead>
               <tr>
+                <th style={thStyle}>#</th>
                 <th style={thStyle}>Name</th>
                 <th style={thStyle}>Visits</th>
               </tr>
             </thead>
             <tbody>
-              {stats.topCinemas.map((c) => (
+              {stats.topCinemas.map((c, i) => (
                 <tr key={c.id}>
+                  <td style={{ ...tdStyle, color: '#9ca3af', fontWeight: 600 }}>{i + 1}</td>
                   <td style={tdStyle}>{c.name}</td>
-                  <td style={tdStyle}>{c.visitCount}</td>
+                  <td style={tdStyle}><strong>{c.visitCount}</strong></td>
                 </tr>
               ))}
             </tbody>

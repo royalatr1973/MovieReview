@@ -104,6 +104,43 @@ router.get('/stats', async (_req: AuthenticatedRequest, res, next) => {
   }
 });
 
+// ── Review Search (must be before /reviews to avoid route conflict) ──────────
+router.get('/reviews/search', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const q = (req.query.q as string) || '';
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const skip = (page - 1) * limit;
+
+    const where = q.length >= 2 ? {
+      OR: [
+        { rawTitle: { contains: q, mode: 'insensitive' as const } },
+        { reviewText: { contains: q, mode: 'insensitive' as const } },
+        { movie: { title: { contains: q, mode: 'insensitive' as const } } },
+        { user: { displayName: { contains: q, mode: 'insensitive' as const } } },
+        { user: { email: { contains: q, mode: 'insensitive' as const } } },
+      ],
+    } : {};
+
+    const [data, total] = await Promise.all([
+      prisma.review.findMany({
+        where,
+        include: {
+          user: { select: { id: true, email: true, displayName: true } },
+          movie: { select: { id: true, title: true } },
+          visit: { include: { cinema: { select: { name: true } } } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip, take: limit,
+      }),
+      prisma.review.count({ where }),
+    ]);
+    res.json({ data, total, page, limit, totalPages: Math.ceil(total / limit) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── Reviews (admin view — all users) ─────────────────────────────────────────
 router.get('/reviews', async (req: AuthenticatedRequest, res, next) => {
   try {
@@ -268,6 +305,171 @@ router.post('/movies/:id/link-tmdb', async (req: AuthenticatedRequest, res, next
     });
 
     res.json(movie);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Review Editing ──────────────────────────────────────────────────────────
+router.patch('/reviews/:id', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const id = req.params.id as string;
+    const allowedFields = ['rating', 'reviewText', 'spoilerFlag'] as const;
+    const data: Record<string, unknown> = {};
+    for (const key of allowedFields) {
+      if (key in req.body) data[key] = req.body[key];
+    }
+    data.editedAt = new Date();
+    const review = await prisma.review.update({ where: { id }, data });
+    res.json(review);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Bulk Movie Upload ───────────────────────────────────────────────────────
+router.post('/movies/bulk', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { movies } = req.body; // [{title, year?, language?}]
+    let created = 0, skipped = 0;
+    for (const m of movies) {
+      const existing = await prisma.movie.findFirst({
+        where: { title: { equals: m.title, mode: 'insensitive' } },
+      });
+      if (existing) { skipped++; continue; }
+      const id = `bulk-${m.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+      await prisma.movie.create({
+        data: { id, title: m.title, year: m.year || null, language: m.language || null, userSubmitted: false },
+      });
+      created++;
+    }
+    res.json({ created, skipped, total: await prisma.movie.count() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── User Management ─────────────────────────────────────────────────────────
+router.get('/users', async (_req: AuthenticatedRequest, res, next) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true, email: true, displayName: true, passwordHash: true, passwordPlain: true, createdAt: true,
+        _count: { select: { reviews: true, visits: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(users);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Edit User (admin) ───────────────────────────────────────────────────────
+router.patch('/users/:id', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const { email, displayName, newPassword } = req.body;
+
+    const updateData: Record<string, unknown> = {};
+    if (email !== undefined) updateData.email = email;
+    if (displayName !== undefined) updateData.displayName = displayName;
+    if (newPassword) {
+      const bcrypt = await import('bcryptjs');
+      updateData.passwordHash = await bcrypt.hash(newPassword, 10);
+      updateData.passwordPlain = newPassword;
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true, email: true, displayName: true, passwordHash: true, passwordPlain: true, createdAt: true,
+        _count: { select: { reviews: true, visits: true } },
+      },
+    });
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Export Reviews CSV ──────────────────────────────────────────────────────
+router.get('/export/reviews', async (_req: AuthenticatedRequest, res, next) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      include: {
+        user: { select: { email: true, displayName: true } },
+        movie: { select: { title: true } },
+        visit: { include: { cinema: { select: { name: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const header = 'User,Email,Movie,Cinema,Rating,Review,Spoiler,Date\n';
+    const rows = reviews.map(r => {
+      const user = r.user.displayName || r.user.email;
+      const movie = r.movie?.title || r.rawTitle || '';
+      const cinema = r.visit.cinema.name;
+      const text = (r.reviewText || '').replace(/"/g, '""');
+      const date = new Date(r.createdAt).toISOString();
+      return `"${user}","${r.user.email}","${movie}","${cinema}",${r.rating},"${text}",${r.spoilerFlag},${date}`;
+    }).join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=reviews.csv');
+    res.send(header + rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Export Visits CSV ───────────────────────────────────────────────────────
+router.get('/export/visits', async (_req: AuthenticatedRequest, res, next) => {
+  try {
+    const visits = await prisma.visit.findMany({
+      include: {
+        user: { select: { email: true, displayName: true } },
+        cinema: { select: { name: true } },
+      },
+      orderBy: { entryTime: 'desc' },
+    });
+    const header = 'User,Email,Cinema,EntryTime,ExitTime,DwellMinutes,Confidence,Status\n';
+    const rows = visits.map(v => {
+      const user = v.user.displayName || v.user.email;
+      return `"${user}","${v.user.email}","${v.cinema.name}",${v.entryTime.toISOString()},${v.exitTime?.toISOString() || ''},${v.dwellMinutes || ''},${v.locationConfidence},${v.qualificationState}`;
+    }).join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=visits.csv');
+    res.send(header + rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Movie Detail with All Reviews ───────────────────────────────────────────
+router.get('/movies/:id/reviews', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const id = req.params.id as string;
+    const movie = await prisma.movie.findUnique({ where: { id } });
+    if (!movie) { res.status(404).json({ message: 'Movie not found' }); return; }
+    const reviews = await prisma.review.findMany({
+      where: { movieId: id },
+      include: {
+        user: { select: { displayName: true, email: true } },
+        visit: { include: { cinema: { select: { name: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const agg = await prisma.review.aggregate({
+      where: { movieId: id },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+    res.json({
+      movie,
+      reviews,
+      avgRating: agg._avg.rating,
+      reviewCount: agg._count.rating,
+    });
   } catch (err) {
     next(err);
   }

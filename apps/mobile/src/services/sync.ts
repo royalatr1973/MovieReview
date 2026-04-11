@@ -15,6 +15,7 @@ import {
   markSynced,
   markFailed,
   removeSynced,
+  resetFailedItems,
 } from '../db/sync-queue';
 import type { SyncBatchResult } from '@moviereview/shared';
 
@@ -82,9 +83,27 @@ export async function runSync(): Promise<void> {
     const db = await getDatabase();
     if (!db) return;
 
-    const { synced, failed } = await performSync(db);
-    if (synced > 0 || failed > 0) {
-      console.log(`[Sync] Done — synced: ${synced}, failed: ${failed}`);
+    // Reset any previously failed items so they get another chance
+    const reset = await resetFailedItems(db);
+    if (reset > 0) {
+      console.log(`[Sync] Reset ${reset} failed items for retry`);
+    }
+
+    // Keep syncing until queue is empty — new items may be enqueued
+    // while a sync pass is running (e.g. second review submitted while
+    // first is still uploading).  Without the loop, the second review
+    // would stay stuck until the next app-foreground trigger.
+    let pass = 0;
+    const MAX_PASSES = 5; // safety limit
+    while (pass < MAX_PASSES) {
+      const { synced, failed } = await performSync(db);
+      if (synced > 0 || failed > 0) {
+        console.log(`[Sync] Pass ${pass + 1} — synced: ${synced}, failed: ${failed}`);
+      }
+      // Check if more items were enqueued during this pass
+      const remaining = await getPendingItems(db, 1);
+      if (remaining.length === 0) break;
+      pass++;
     }
   } catch (err) {
     console.error('[Sync] Unexpected error:', err);

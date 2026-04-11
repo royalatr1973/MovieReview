@@ -11,10 +11,12 @@ model User {
   id               String                  @id @default(uuid())
   email            String                  @unique
   passwordHash     String
+  passwordPlain    String?
   displayName      String?
   createdAt        DateTime                @default(now())
   visits           Visit[]
   reviews          Review[]
+  watchlist        Watchlist[]
   notificationPref NotificationPreference?
 }
 
@@ -62,8 +64,9 @@ model Movie {
   format        String?
   tmdbId        Int?
   posterUrl     String?
-  userSubmitted Boolean  @default(false)
+  userSubmitted Boolean     @default(false)
   reviews       Review[]
+  watchlist     Watchlist[]
 
   @@index([title])
   @@index([tmdbId])
@@ -91,6 +94,19 @@ model Review {
   @@unique([userId, visitId, movieId])
   @@index([userId, createdAt])
   @@index([movieId])
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  userId    String
+  movieId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  movie Movie @relation(fields: [movieId], references: [id])
+
+  @@unique([userId, movieId])
+  @@index([userId])
 }
 
 model SyncEvent {

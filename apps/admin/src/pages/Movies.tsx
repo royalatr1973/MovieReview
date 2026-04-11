@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 
 interface Movie {
@@ -14,10 +15,14 @@ interface Movie {
 }
 
 export default function Movies() {
+  const navigate = useNavigate();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [showBulk, setShowBulk] = useState(false);
+  const [bulkText, setBulkText] = useState('');
+  const [bulkStatus, setBulkStatus] = useState('');
   const [mergeSource, setMergeSource] = useState<string | null>(null);
   const [mergeTarget, setMergeTarget] = useState('');
   const [linkingId, setLinkingId] = useState<string | null>(null);
@@ -72,6 +77,32 @@ export default function Movies() {
     }
   }
 
+  async function handleBulkUpload() {
+    const lines = bulkText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+    setBulkStatus('Uploading...');
+    try {
+      const movies = lines.map(line => {
+        // Format: "Title, Year, Language" or just "Title"
+        const parts = line.split(',').map(p => p.trim());
+        return {
+          title: parts[0],
+          year: parts[1] ? parseInt(parts[1]) : null,
+          language: parts[2] || null,
+        };
+      });
+      const res = await api<{ created: number; skipped: number; total: number }>(
+        '/admin/movies/bulk',
+        { method: 'POST', body: JSON.stringify({ movies }) }
+      );
+      setBulkStatus(`Done! Created: ${res.created}, Skipped: ${res.skipped}, Total: ${res.total}`);
+      setBulkText('');
+      loadMovies();
+    } catch (err: unknown) {
+      setBulkStatus(err instanceof Error ? err.message : 'Upload failed');
+    }
+  }
+
   const filtered = movies.filter((m) =>
     m.title.toLowerCase().includes(search.toLowerCase()),
   );
@@ -82,13 +113,43 @@ export default function Movies() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h1 style={{ margin: 0, fontSize: 22 }}>Movies ({movies.length})</h1>
-        <input
-          placeholder="Search movies..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={searchInput}
-        />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            placeholder="Search movies..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={searchInput}
+          />
+          <button onClick={() => setShowBulk(!showBulk)} style={{ ...editBtn, padding: '6px 14px' }}>
+            {showBulk ? 'Hide' : 'Bulk Add'}
+          </button>
+          <a href="/api/admin/export/reviews" download style={{ ...editBtn, padding: '6px 14px', textDecoration: 'none', color: '#374151' }}>
+            Export CSV
+          </a>
+        </div>
       </div>
+
+      {/* Bulk upload */}
+      {showBulk && (
+        <div style={{ backgroundColor: '#fff', padding: 16, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginBottom: 16 }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: 14 }}>Bulk Add Movies</h3>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6b7280' }}>
+            One movie per line. Format: <code>Title, Year, Language</code> (year and language optional)
+          </p>
+          <textarea
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+            placeholder={"Coolie, 2026, Tamil\nPushpa 3, 2026, Telugu\nDunki 2"}
+            style={{ width: '100%', minHeight: 100, padding: 10, borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'monospace' }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+            <button onClick={handleBulkUpload} disabled={!bulkText.trim()} style={{ ...mergeBtn, opacity: bulkText.trim() ? 1 : 0.5 }}>
+              Upload {bulkText.split('\n').filter(l => l.trim()).length} movies
+            </button>
+            {bulkStatus && <span style={{ fontSize: 13, color: bulkStatus.startsWith('Done') ? '#16a34a' : '#6b7280' }}>{bulkStatus}</span>}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '10px 14px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>
@@ -147,7 +208,11 @@ export default function Movies() {
                   <div style={{ width: 32, height: 48, backgroundColor: '#e5e7eb', borderRadius: 3 }} />
                 )}
               </td>
-              <td style={tdStyle}>{m.title}</td>
+              <td style={tdStyle}>
+                <a onClick={() => navigate(`/movies/${m.id}`)} style={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'none', fontWeight: 500 }}>
+                  {m.title}
+                </a>
+              </td>
               <td style={tdStyle}>{m.year || '-'}</td>
               <td style={tdStyle}>{m.language || '-'}</td>
               <td style={tdStyle}>

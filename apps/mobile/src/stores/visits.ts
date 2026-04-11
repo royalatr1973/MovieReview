@@ -10,6 +10,8 @@ import {
   updateVisitPromptState as dbUpdateVisitPromptState,
   type LocalVisit,
 } from '../db/visits';
+import { enqueue } from '../db/sync-queue';
+import { runSync } from '../services/sync';
 
 interface LocalVisitData extends VisitCandidate {
   cinemaName?: string;
@@ -73,12 +75,27 @@ export const useVisitStore = create<VisitState>((set, get) => ({
       activeVisit: visit.exitTime ? state.activeVisit : visit,
     }));
 
-    // Persist to SQLite in background
-    getDatabase().then((db) => {
+    // Persist to SQLite + enqueue for sync
+    getDatabase().then(async (db) => {
       if (!db) return;
-      insertVisit(db, visit as LocalVisit).catch((err) =>
-        console.error('[VisitStore] insertVisit failed:', err)
-      );
+      try {
+        await insertVisit(db, visit as LocalVisit);
+        await enqueue(db, visit.clientEventId, 'visit', {
+          visitId: visit.visitId,
+          cinemaId: visit.cinemaId,
+          cinemaName: visit.cinemaName,
+          entryTime: visit.entryTime,
+          exitTime: visit.exitTime,
+          dwellMinutes: visit.dwellMinutes,
+          locationConfidence: visit.locationConfidence,
+          qualificationState: visit.qualificationState,
+          promptState: visit.promptState,
+          clientEventId: visit.clientEventId,
+        } as Record<string, unknown>);
+        runSync();
+      } catch (err) {
+        console.error('[VisitStore] insertVisit failed:', err);
+      }
     });
   },
 

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r promptState /c/Users/Admin/moviereview/MovieReview/apps/mobile --include=*.ts --include=*.tsx)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(adb devices:*)",
+      "Bash(npx expo:*)"
+    ]
+  }
+}

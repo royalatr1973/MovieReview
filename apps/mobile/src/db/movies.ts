@@ -31,6 +31,8 @@ export async function upsertMovie(
        format = excluded.format,
        tmdb_id = COALESCE(excluded.tmdb_id, tmdb_id),
        poster_url = COALESCE(excluded.poster_url, poster_url),
+       review_count = CASE WHEN excluded.review_count > 0 THEN excluded.review_count ELSE review_count END,
+       average_rating = COALESCE(excluded.average_rating, average_rating),
        user_submitted = excluded.user_submitted,
        cached_at = datetime('now')`,
     movie.id,

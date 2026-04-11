@@ -128,8 +128,14 @@ router.post(
       for (const item of items) {
         try {
           if (item.entityType === 'visit') {
-            const existing = await prisma.visit.findUnique({
-              where: { clientEventId: item.clientEventId },
+            const p_dup = item.payload as Record<string, unknown>;
+            const existing = await prisma.visit.findFirst({
+              where: {
+                OR: [
+                  { clientEventId: item.clientEventId },
+                  ...(p_dup.visitId ? [{ id: String(p_dup.visitId) }] : []),
+                ],
+              },
             });
             if (existing) {
               results.push({ clientEventId: item.clientEventId, status: 'duplicate', serverId: existing.id });
@@ -137,10 +143,29 @@ router.post(
             }
 
             const p = item.payload as Record<string, unknown>;
+            const cinemaId = String(p.cinemaId ?? 'unknown');
+
+            // Auto-create cinema if it doesn't exist (for simulated/custom visits)
+            const cinemaExists = await prisma.cinema.findUnique({ where: { id: cinemaId } });
+            if (!cinemaExists) {
+              await prisma.cinema.create({
+                data: {
+                  id: cinemaId,
+                  name: String(p.cinemaName || cinemaId),
+                  latitude: 0,
+                  longitude: 0,
+                  radius: 100,
+                  city: 'Unknown',
+                },
+              });
+            }
+
             const visit = await prisma.visit.create({
               data: {
+                // Use the mobile's visitId as the server ID so reviews can find it
+                ...(p.visitId ? { id: String(p.visitId) } : {}),
                 userId,
-                cinemaId: String(p.cinemaId ?? 'unknown'),
+                cinemaId,
                 entryTime: new Date(String(p.entryTime)),
                 exitTime: p.exitTime ? new Date(String(p.exitTime)) : null,
                 dwellMinutes: p.dwellMinutes ? Number(p.dwellMinutes) : null,

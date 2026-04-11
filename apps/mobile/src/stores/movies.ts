@@ -11,6 +11,7 @@ import {
   type LocalMovie,
 } from '../db/movies';
 import type { TmdbMovie } from '../services/tmdb';
+import { api } from '../services/api-client';
 
 interface MovieState {
   /** All movies loaded into memory (for the Movies tab) */
@@ -53,18 +54,49 @@ export const useMovieStore = create<MovieState>((set, get) => ({
 
   loadMovies: async () => {
     set({ loading: true });
+
+    // Primary: load from local SQLite
     const db = await getDatabase();
-    if (!db) {
-      set({ loading: false });
-      return;
+    if (db) {
+      try {
+        const movies = await getAllMoviesWithStats(db, 100);
+        if (movies.length > 0) {
+          set({ movies, loading: false });
+        }
+      } catch (err) {
+        console.error('[MovieStore] loadMovies from SQLite failed:', err);
+      }
     }
+
+    // Secondary: fetch from server and merge into local DB
     try {
-      const movies = await getAllMoviesWithStats(db, 100);
-      set({ movies, loading: false });
-    } catch (err) {
-      console.error('[MovieStore] loadMovies failed:', err);
-      set({ loading: false });
+      const response = await api.get<{ data: any[] }>('/movies');
+      const serverMovies = response.data;
+      if (serverMovies && serverMovies.length > 0 && db) {
+        for (const m of serverMovies) {
+          await upsertMovie(db, {
+            id: m.id,
+            title: m.title,
+            year: m.year ?? null,
+            language: m.language ?? null,
+            format: m.format ?? null,
+            tmdbId: m.tmdbId ?? null,
+            posterUrl: m.posterUrl ?? null,
+            userSubmitted: m.userSubmitted ?? false,
+            reviewCount: m.reviewCount ?? m._count?.reviews ?? 0,
+            averageRating: m.averageRating ?? null,
+          });
+        }
+        // Reload from SQLite to get merged data with stats
+        const merged = await getAllMoviesWithStats(db, 100);
+        set({ movies: merged, loading: false });
+        return;
+      }
+    } catch {
+      // Offline — local data already loaded
     }
+
+    set({ loading: false });
   },
 
   getMovieById: (id: string) => {
@@ -73,12 +105,48 @@ export const useMovieStore = create<MovieState>((set, get) => ({
 
   searchLocal: async (query: string) => {
     const db = await getDatabase();
-    if (!db) return [];
-    try {
-      return await searchMoviesLocal(db, query, 20);
-    } catch {
-      return [];
+    const localResults: LocalMovie[] = [];
+
+    // Search local SQLite first
+    if (db) {
+      try {
+        const results = await searchMoviesLocal(db, query, 20);
+        localResults.push(...results);
+      } catch {
+        // continue to server
+      }
     }
+
+    // Also search server for movies other users have reviewed
+    try {
+      const response = await api.get<{ data: any[] }>(
+        `/movies/search?q=${encodeURIComponent(query)}`
+      );
+      if (response.data && response.data.length > 0 && db) {
+        for (const m of response.data) {
+          // Cache server results locally (including rating data)
+          await upsertMovie(db, {
+            id: m.id,
+            title: m.title,
+            year: m.year ?? null,
+            language: m.language ?? null,
+            format: m.format ?? null,
+            tmdbId: m.tmdbId ?? null,
+            posterUrl: m.posterUrl ?? null,
+            userSubmitted: m.userSubmitted ?? false,
+            reviewCount: (m as any).reviewCount ?? (m as any)._count?.reviews ?? 0,
+            averageRating: (m as any).averageRating ?? null,
+          });
+        }
+        // Re-search locally to get merged results with proper stats
+        const merged = await searchMoviesLocal(db, query, 20);
+        return merged;
+      }
+    } catch {
+      // Offline — use local results
+    }
+
+    return localResults;
   },
 
   cacheTmdbMovie: async (tmdb: TmdbMovie) => {

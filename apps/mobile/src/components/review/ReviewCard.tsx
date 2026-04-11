@@ -7,6 +7,20 @@ interface ReviewCardProps {
   onPress?: () => void;
 }
 
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const time = d.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${date}, ${time}`;
+}
+
 export function ReviewCard({ review, onPress }: ReviewCardProps) {
   return (
     <Pressable
@@ -37,6 +51,7 @@ export function ReviewCard({ review, onPress }: ReviewCardProps) {
             color="#fbbf24"
           />
         ))}
+        <Text style={styles.ratingNum}>{review.rating}/5</Text>
       </View>
 
       {review.reviewText && (
@@ -47,7 +62,7 @@ export function ReviewCard({ review, onPress }: ReviewCardProps) {
       )}
 
       <Text style={styles.date}>
-        {new Date(review.createdAt).toLocaleDateString()}
+        {formatDateTime(review.createdAt)}
       </Text>
     </Pressable>
   );
@@ -79,7 +94,13 @@ const styles = StyleSheet.create({
   stars: {
     flexDirection: 'row',
     gap: 2,
+    alignItems: 'center',
     marginBottom: 6,
+  },
+  ratingNum: {
+    fontSize: 12,
+    color: '#a0a0b0',
+    marginLeft: 6,
   },
   text: {
     fontSize: 14,

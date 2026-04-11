@@ -1,11 +1,13 @@
 import { View, Text, StyleSheet, Switch, Pressable, Alert, ScrollView, Platform, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/stores/auth';
 import { useVisitStore } from '../../src/stores/visits';
 import { useSettingsStore } from '../../src/stores/settings';
 import { useState } from 'react';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { user, logout } = useAuthStore();
   const { simulateVisitAtCurrentLocation } = useVisitStore();
   const { testDwellMinutes, testGeofenceRadius, setTestDwellMinutes, setTestGeofenceRadius } = useSettingsStore();
@@ -135,7 +137,14 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: logout },
+      {
+        text: 'Log Out',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/(onboarding)/welcome');
+        },
+      },
     ]);
   };
 

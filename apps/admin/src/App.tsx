@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard';
 import Reviews from './pages/Reviews';
 import Cinemas from './pages/Cinemas';
 import Movies from './pages/Movies';
+import MovieDetail from './pages/MovieDetail';
+import Users from './pages/Users';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!getToken()) return <Navigate to="/login" replace />;
@@ -28,6 +30,8 @@ export default function App() {
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/cinemas" element={<Cinemas />} />
           <Route path="/movies" element={<Movies />} />
+          <Route path="/movies/:id" element={<MovieDetail />} />
+          <Route path="/users" element={<Users />} />
         </Route>
       </Routes>
     </BrowserRouter>
