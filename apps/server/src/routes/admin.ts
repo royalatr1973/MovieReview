@@ -368,7 +368,7 @@ router.get('/users', async (_req: AuthenticatedRequest, res, next) => {
 // ── Edit User (admin) ───────────────────────────────────────────────────────
 router.patch('/users/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { email, displayName, newPassword } = req.body;
 
     const updateData: Record<string, unknown> = {};
