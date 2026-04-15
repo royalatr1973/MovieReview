@@ -11,8 +11,9 @@ import { adminRouter } from './routes/admin';
 
 const app = express();
 
+const corsOrigins = process.env.CORS_ORIGINS || '';
 app.use(cors({
-  origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:5173'],
+  origin: corsOrigins === '*' ? true : corsOrigins ? corsOrigins.split(',') : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
 }));
 app.use(express.json());
