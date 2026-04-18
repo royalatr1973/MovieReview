@@ -15,6 +15,9 @@ export interface CinemaSeed {
 }
 
 export const CHENNAI_CINEMAS: CinemaSeed[] = [
+  // ── Test Cinema ──────────────────────────────────────────────────────────
+  { id: 'my-home-test-cinema', name: 'My Test Cinema', latitude: 13.0218, longitude: 80.2602, radius: 100, address: 'Test Location', chain: null, city: 'Chennai', active: true },
+
   // ── Multiplex chains ──────────────────────────────────────────────────────
   {
     id: 'pvr-phoenix-velachery',

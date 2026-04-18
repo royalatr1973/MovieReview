@@ -139,6 +139,15 @@ export default function MoviesScreen() {
   const { movies, loading, loadMovies } = useMovieStore();
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortMode>('rating');
+  const [languageFilter, setLanguageFilter] = useState<string | null>(null);
+
+  const availableLanguages = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of movies) {
+      if (m.language && m.language.trim()) set.add(m.language.trim());
+    }
+    return Array.from(set).sort();
+  }, [movies]);
 
   useEffect(() => {
     loadMovies();
@@ -150,6 +159,11 @@ export default function MoviesScreen() {
 
   const filteredAndSorted = useMemo(() => {
     let list = movies;
+
+    // Filter by language chip
+    if (languageFilter) {
+      list = list.filter((m) => (m.language ?? '').trim() === languageFilter);
+    }
 
     // Filter by search
     if (search.length >= 2) {
@@ -182,7 +196,7 @@ export default function MoviesScreen() {
         break;
     }
     return sorted;
-  }, [movies, search, sortBy]);
+  }, [movies, search, sortBy, languageFilter]);
 
   return (
     <FlatList
@@ -222,6 +236,25 @@ export default function MoviesScreen() {
             <SortPill label="A-Z" active={sortBy === 'title'} onPress={() => setSortBy('title')} />
             <SortPill label="Recent" active={sortBy === 'recent'} onPress={() => setSortBy('recent')} />
           </View>
+
+          {/* Language filter chips */}
+          {availableLanguages.length > 0 && (
+            <View style={styles.sortRow}>
+              <SortPill
+                label="All"
+                active={languageFilter === null}
+                onPress={() => setLanguageFilter(null)}
+              />
+              {availableLanguages.map((lang) => (
+                <SortPill
+                  key={lang}
+                  label={lang}
+                  active={languageFilter === lang}
+                  onPress={() => setLanguageFilter(lang)}
+                />
+              ))}
+            </View>
+          )}
 
           {/* Result count */}
           <Text style={styles.resultCount}>

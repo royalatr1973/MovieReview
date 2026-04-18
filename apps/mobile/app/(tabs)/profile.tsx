@@ -244,7 +244,13 @@ export default function ProfileScreen() {
       {/* Watchlist preview */}
       {watchlist.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Watchlist ({watchlist.length})</Text>
+          <Pressable
+            style={styles.sectionHeader}
+            onPress={() => router.push('/watchlist')}
+          >
+            <Text style={styles.sectionTitle}>Watchlist ({watchlist.length})</Text>
+            <Text style={styles.viewAll}>View all</Text>
+          </Pressable>
           {watchlist.slice(0, 5).map((item) => (
             <Pressable
               key={item.movieId}
@@ -258,7 +264,9 @@ export default function ProfileScreen() {
             </Pressable>
           ))}
           {watchlist.length > 5 && (
-            <Text style={styles.moreText}>+{watchlist.length - 5} more</Text>
+            <Pressable onPress={() => router.push('/watchlist')}>
+              <Text style={styles.moreText}>+{watchlist.length - 5} more</Text>
+            </Pressable>
           )}
         </View>
       )}
@@ -297,4 +305,6 @@ const styles = StyleSheet.create({
   watchlistTitle: { flex: 1, fontSize: 15, color: '#ffffff', fontWeight: '500' },
   watchlistYear: { fontSize: 13, color: '#a0a0b0' },
   moreText: { textAlign: 'center', color: '#6b7280', fontSize: 13, marginTop: 4 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  viewAll: { color: '#e94560', fontSize: 13, fontWeight: '600' },
 });

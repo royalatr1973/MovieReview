@@ -1,20 +1,32 @@
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
+import { getDatabase } from '../db/database';
+import { getPendingItems } from '../db/sync-queue';
+import { performSync } from '../services/sync';
 
 export const BACKGROUND_SYNC_TASK = 'background-sync-task';
 
 TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
   try {
-    // In production, this would:
-    // 1. Open the SQLite database
-    // 2. Check for pending sync items
-    // 3. Batch upload to server
-    // 4. Mark as synced
-    console.log('Background sync task executed');
+    const db = await getDatabase();
+    if (!db) {
+      return BackgroundFetch.BackgroundFetchResult.NoData;
+    }
 
-    return BackgroundFetch.BackgroundFetchResult.NewData;
+    // Short-circuit if nothing is pending
+    const pending = await getPendingItems(db, 1);
+    if (pending.length === 0) {
+      return BackgroundFetch.BackgroundFetchResult.NoData;
+    }
+
+    const { synced, failed } = await performSync(db);
+    console.log(`[BackgroundSync] synced=${synced} failed=${failed}`);
+
+    return synced > 0
+      ? BackgroundFetch.BackgroundFetchResult.NewData
+      : BackgroundFetch.BackgroundFetchResult.NoData;
   } catch (err) {
-    console.error('Background sync error:', err);
+    console.error('[BackgroundSync] error:', err);
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });
@@ -28,6 +40,7 @@ export async function registerBackgroundSync(): Promise<void> {
     stopOnTerminate: false,
     startOnBoot: true,
   });
+  console.log('[BackgroundSync] registered');
 }
 
 export async function unregisterBackgroundSync(): Promise<void> {

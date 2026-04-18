@@ -6,10 +6,9 @@ import {
   FlatList,
   RefreshControl,
   Pressable,
-  Image,
   Animated,
-  Alert,
 } from 'react-native';
+import { CachedImage } from '../../src/components/CachedImage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useMovieStore } from '../../src/stores/movies';
@@ -24,6 +23,7 @@ interface ServerReview {
   reviewText: string | null;
   spoilerFlag: boolean;
   createdAt: string;
+  editedAt: string | null;
   user: { displayName: string | null };
 }
 
@@ -157,6 +157,7 @@ export default function MovieDetailScreen() {
           reviewText: r.reviewText,
           spoilerFlag: r.spoilerFlag,
           createdAt: r.createdAt,
+          editedAt: r.editedAt ?? null,
           user: { displayName: 'You' },
         }));
 
@@ -185,7 +186,7 @@ export default function MovieDetailScreen() {
         {/* Poster + title row */}
         <View style={styles.titleRow}>
           {movie.posterUrl ? (
-            <Image source={{ uri: movie.posterUrl }} style={styles.poster} resizeMode="cover" />
+            <CachedImage uri={movie.posterUrl} style={styles.poster} resizeMode="cover" />
           ) : (
             <View style={[styles.poster, styles.posterPlaceholder]}>
               <Ionicons name="film" size={32} color="#e94560" />
@@ -251,11 +252,16 @@ export default function MovieDetailScreen() {
               <Text style={styles.ratingNum}>{item.rating}/5</Text>
             </View>
           </View>
-          <Text style={styles.reviewDate}>
-            {new Date(item.createdAt).toLocaleDateString('en-IN', {
-              day: 'numeric', month: 'short', year: 'numeric',
-            })}
-          </Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.reviewDate}>
+              {new Date(item.createdAt).toLocaleDateString('en-IN', {
+                day: 'numeric', month: 'short', year: 'numeric',
+              })}
+            </Text>
+            {item.editedAt ? (
+              <Text style={styles.editedBadge}>(edited)</Text>
+            ) : null}
+          </View>
         </View>
         {item.reviewText ? (
           <Text style={styles.reviewText}>
@@ -344,6 +350,7 @@ const styles = StyleSheet.create({
   ratingNum: { fontSize: 12, color: '#a0a0b0' },
   reviewText: { fontSize: 15, color: '#e0e0e0', lineHeight: 22, marginBottom: 4 },
   reviewDate: { fontSize: 12, color: '#6b7280' },
+  editedBadge: { fontSize: 10, color: '#6b7280', fontStyle: 'italic', marginTop: 2 },
   emptyReviews: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { fontSize: 16, color: '#a0a0b0', marginTop: 10 },
   emptySubtext: { fontSize: 13, color: '#6b7280', marginTop: 4 },

@@ -8,6 +8,8 @@ import { moviesRouter } from './routes/movies';
 import { cinemasRouter } from './routes/cinemas';
 import { syncRouter } from './routes/sync';
 import { adminRouter } from './routes/admin';
+import { notificationPreferencesRouter } from './routes/notification-preferences';
+import { watchlistRouter } from './routes/watchlist';
 
 const app = express();
 
@@ -29,6 +31,8 @@ app.use('/api/movies', moviesRouter);
 app.use('/api/cinemas', cinemasRouter);
 app.use('/api/sync', syncRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/notification-preferences', notificationPreferencesRouter);
+app.use('/api/watchlist', watchlistRouter);
 
 app.use(errorHandler);
 

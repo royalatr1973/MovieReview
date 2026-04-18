@@ -64,4 +64,39 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
+/** Reviews left at this cinema, with movie metadata and reviewer display name. */
+router.get('/:id/reviews', async (req, res, next) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const reviews = await prisma.review.findMany({
+      where: { visit: { cinemaId: req.params.id } },
+      include: {
+        movie: true,
+        user: { select: { id: true, displayName: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    res.json(reviews);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Changes since a given timestamp, for clients to refresh local cinema cache. */
+router.get('/updates/since', async (req, res, next) => {
+  try {
+    const sinceStr = req.query.since as string | undefined;
+    const since = sinceStr ? new Date(sinceStr) : new Date(0);
+    // Cinema model lacks an updatedAt; use an all-cinemas return scoped by active.
+    const cinemas = await prisma.cinema.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json({ cinemas, fetchedAt: new Date().toISOString(), since: since.toISOString() });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export { router as cinemasRouter };

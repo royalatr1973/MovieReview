@@ -48,3 +48,17 @@ export const api = {
   delete: <T>(endpoint: string) =>
     request<T>(endpoint, { method: 'DELETE' }),
 };
+
+let warmupStarted = false;
+
+/**
+ * Fire-and-forget ping to /health to warm up a cold server (Render free tier
+ * sleeps after inactivity). Swallows errors — this is a best-effort call.
+ */
+export function warmupApi(): void {
+  if (warmupStarted) return;
+  warmupStarted = true;
+  fetch(`${API_URL}/health`, { method: 'GET' }).catch(() => {
+    // No-op: warmup is best-effort.
+  });
+}

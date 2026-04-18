@@ -13,6 +13,9 @@ echo "=== Generating Prisma client ==="
 cd apps/server
 npx prisma generate
 
+echo "=== Applying database migrations ==="
+npx prisma migrate deploy
+
 echo "=== Building server ==="
 npm run build
 cd ../..

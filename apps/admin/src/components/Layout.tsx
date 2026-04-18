@@ -9,6 +9,7 @@ const navItems = [
   { to: '/movies', label: 'Movies' },
   { to: '/cinemas', label: 'Cinemas' },
   { to: '/users', label: 'Users' },
+  { to: '/employee-check', label: 'Employee Check' },
 ];
 
 export default function Layout() {

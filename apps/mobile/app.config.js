@@ -16,6 +16,12 @@ module.exports = {
     orientation: "portrait",
     scheme: "cinereview",
     userInterfaceStyle: "automatic",
+    icon: "./assets/icon.png",
+    splash: {
+      image: "./assets/icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#e94560",
+    },
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.cinereview.app",
@@ -38,6 +44,11 @@ module.exports = {
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK",
       ],
     },
     extra: {

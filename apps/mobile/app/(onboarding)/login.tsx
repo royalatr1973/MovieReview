@@ -124,6 +124,15 @@ export default function LoginScreen() {
               : "Don't have an account? Sign Up"}
           </Text>
         </Pressable>
+
+        {!isRegister && (
+          <Pressable
+            onPress={() => router.push('/(onboarding)/forgot')}
+            style={styles.switchBtn}
+          >
+            <Text style={styles.switchText}>Forgot password?</Text>
+          </Pressable>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

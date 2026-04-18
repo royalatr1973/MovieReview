@@ -61,9 +61,14 @@ export function ReviewCard({ review, onPress }: ReviewCardProps) {
         </Text>
       )}
 
-      <Text style={styles.date}>
-        {formatDateTime(review.createdAt)}
-      </Text>
+      <View style={styles.dateRow}>
+        <Text style={styles.date}>
+          {formatDateTime(review.createdAt)}
+        </Text>
+        {review.editedAt ? (
+          <Text style={styles.editedBadge}>(edited)</Text>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -107,8 +112,18 @@ const styles = StyleSheet.create({
     color: '#a0a0b0',
     marginBottom: 6,
   },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   date: {
     fontSize: 12,
     color: '#6b7280',
+  },
+  editedBadge: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontStyle: 'italic',
   },
 });

@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
+import { authenticateToken, requireAdmin, AuthenticatedRequest } from '../middleware/auth';
 import prisma from '../lib/prisma';
 
 const router = Router();
 
-// All admin routes require auth (in production, add role-based check)
+// All admin routes require both auth and admin role
 router.use(authenticateToken);
+router.use(requireAdmin);
 
 // ── Dashboard Stats ──────────────────────────────────────────────────────────
 router.get('/stats', async (_req: AuthenticatedRequest, res, next) => {
@@ -389,6 +390,42 @@ router.patch('/users/:id', async (req: AuthenticatedRequest, res, next) => {
       },
     });
     res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Employee-check Visits ───────────────────────────────────────────────────
+router.get('/visits/employee-check', async (_req: AuthenticatedRequest, res, next) => {
+  try {
+    const visits = await prisma.visit.findMany({
+      where: { qualificationState: 'employee_check' },
+      include: {
+        user: { select: { id: true, email: true, displayName: true } },
+        cinema: { select: { id: true, name: true } },
+      },
+      orderBy: { entryTime: 'desc' },
+      take: 200,
+    });
+    res.json(visits);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/visits/:id/qualification', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { qualificationState } = req.body as { qualificationState?: string };
+    const allowed = ['discarded', 'soft_confirm', 'full_review', 'employee_check'];
+    if (!qualificationState || !allowed.includes(qualificationState)) {
+      res.status(400).json({ message: 'Invalid qualificationState' });
+      return;
+    }
+    const visit = await prisma.visit.update({
+      where: { id: req.params.id },
+      data: { qualificationState },
+    });
+    res.json(visit);
   } catch (err) {
     next(err);
   }

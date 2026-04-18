@@ -22,7 +22,23 @@ export default function ConfirmScreen() {
   if (!visit) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Visit not found</Text>
+        <View style={styles.iconContainer}>
+          <Ionicons name="alert-circle" size={64} color="#fbbf24" />
+        </View>
+        <Text style={styles.title}>Visit details unavailable</Text>
+        <Text style={styles.subtitle}>
+          We couldn't recover the cinema visit details for this notification.
+          This can happen if the app was closed for a long time.
+        </Text>
+        <Text style={styles.subtitle}>
+          You can still add a manual review from the Home tab.
+        </Text>
+        <View style={styles.buttons}>
+          <Pressable style={styles.yesButton} onPress={() => router.replace('/(tabs)/home')}>
+            <Ionicons name="home" size={24} color="#ffffff" />
+            <Text style={styles.yesText}>Go to Home</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }

@@ -8,6 +8,7 @@ import Cinemas from './pages/Cinemas';
 import Movies from './pages/Movies';
 import MovieDetail from './pages/MovieDetail';
 import Users from './pages/Users';
+import EmployeeCheck from './pages/EmployeeCheck';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!getToken()) return <Navigate to="/login" replace />;
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/movies" element={<Movies />} />
           <Route path="/movies/:id" element={<MovieDetail />} />
           <Route path="/users" element={<Users />} />
+          <Route path="/employee-check" element={<EmployeeCheck />} />
         </Route>
       </Routes>
     </BrowserRouter>

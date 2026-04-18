@@ -122,10 +122,12 @@ export const useVisitStore = create<VisitState>((set, get) => ({
   },
 
   simulateVisit: () => {
+    const { useSettingsStore } = require('../stores/settings');
+    const testDwell = useSettingsStore.getState().testDwellMinutes;
     const visitId = Crypto.randomUUID();
     const now = new Date();
-    const entryTime = new Date(now.getTime() - 120 * 60 * 1000); // 2 hours ago
-    const dwellMinutes = 120;
+    const dwellMinutes = testDwell || 120;
+    const entryTime = new Date(now.getTime() - dwellMinutes * 60 * 1000);
 
     const qualificationState = qualifyVisitLocally({
       dwellMinutes,
@@ -153,10 +155,12 @@ export const useVisitStore = create<VisitState>((set, get) => ({
   },
 
   simulateVisitAtCurrentLocation: (coords: { latitude: number; longitude: number } | null) => {
+    const { useSettingsStore } = require('../stores/settings');
+    const testDwell = useSettingsStore.getState().testDwellMinutes;
     const visitId = Crypto.randomUUID();
     const now = new Date();
-    const entryTime = new Date(now.getTime() - 120 * 60 * 1000); // 2 hours ago
-    const dwellMinutes = 120;
+    const dwellMinutes = testDwell || 120;
+    const entryTime = new Date(now.getTime() - dwellMinutes * 60 * 1000);
 
     const qualificationState = qualifyVisitLocally({
       dwellMinutes,
