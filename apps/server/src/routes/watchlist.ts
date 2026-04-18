@@ -51,7 +51,7 @@ router.post(
 router.delete('/:movieId', authenticateToken, async (req: AuthenticatedRequest, res, next) => {
   try {
     await prisma.watchlist.deleteMany({
-      where: { userId: req.userId!, movieId: req.params.movieId },
+      where: { userId: req.userId!, movieId: String(req.params.movieId) },
     });
     res.status(204).send();
   } catch (err) {

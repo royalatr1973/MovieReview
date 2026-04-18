@@ -422,7 +422,7 @@ router.patch('/visits/:id/qualification', async (req: AuthenticatedRequest, res,
       return;
     }
     const visit = await prisma.visit.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data: { qualificationState },
     });
     res.json(visit);
