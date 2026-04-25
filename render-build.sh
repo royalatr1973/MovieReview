@@ -22,6 +22,11 @@ npx prisma db push --accept-data-loss --skip-generate
 
 echo "=== Building server ==="
 npm run build
+
+echo "=== Seeding cinemas ==="
+# Idempotent: upserts the 34 authoritative cinemas, deactivates obsolete ones
+# whose ids no longer match. Safe to run on every deploy.
+npx tsx prisma/seed.ts
 cd ../..
 
 echo "=== Build complete ==="

@@ -47,15 +47,34 @@ const cinemas = [
 async function main() {
   console.log('Seeding database...');
 
-  // Remove any cinema not in the authoritative list so stale rows from earlier
-  // seeds (with wrong coords or obsolete IDs) don't linger in production.
+  // Clean out cinemas that aren't in the authoritative list. We can't blindly
+  // deleteMany — Visit.cinemaId is a RESTRICT foreign key, so if any user has
+  // visits at an obsolete cinema the delete throws. Strategy:
+  //   - Cinemas with NO visits → hard delete.
+  //   - Cinemas WITH visits → mark active=false so they vanish from the
+  //     mobile geofence registration and (filtered) admin UI, but visit
+  //     history is preserved for audit.
   const allowedIds = cinemas.map((c) => c.id);
-  const removed = await prisma.cinema.deleteMany({
+  const obsolete = await prisma.cinema.findMany({
     where: { id: { notIn: allowedIds } },
+    include: { _count: { select: { visits: true } } },
   });
-  if (removed.count > 0) {
-    console.log(`✓ Removed ${removed.count} obsolete cinemas`);
+  let deletedCount = 0;
+  let deactivatedCount = 0;
+  for (const c of obsolete) {
+    if (c._count.visits === 0) {
+      await prisma.cinema.delete({ where: { id: c.id } });
+      deletedCount++;
+    } else if (c.active) {
+      await prisma.cinema.update({
+        where: { id: c.id },
+        data: { active: false },
+      });
+      deactivatedCount++;
+    }
   }
+  if (deletedCount > 0) console.log(`✓ Hard-deleted ${deletedCount} obsolete cinemas with no visits`);
+  if (deactivatedCount > 0) console.log(`✓ Deactivated ${deactivatedCount} obsolete cinemas with existing visits (history preserved)`);
 
   for (const cinema of cinemas) {
     await prisma.cinema.upsert({

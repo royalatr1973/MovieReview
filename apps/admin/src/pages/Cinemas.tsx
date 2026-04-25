@@ -32,6 +32,7 @@ export default function Cinemas() {
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState<SortField>('visits');
   const [sortAsc, setSortAsc] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
   useEffect(() => {
     loadCinemas();
@@ -133,6 +134,7 @@ export default function Cinemas() {
   // Filter + sort
   const lowerSearch = search.toLowerCase();
   const filtered = cinemas
+    .filter((c) => showInactive || c.active)
     .filter(
       (c) =>
         search.length === 0 ||
@@ -167,8 +169,22 @@ export default function Cinemas() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 22 }}>Cinemas ({cinemas.length})</h1>
+        <h1 style={{ margin: 0, fontSize: 22 }}>
+          Cinemas ({filtered.length}
+          {!showInactive && cinemas.some((c) => !c.active)
+            ? ` of ${cinemas.length}, ${cinemas.filter((c) => !c.active).length} inactive hidden`
+            : ''}
+          )
+        </h1>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+            />
+            Show inactive
+          </label>
           <input
             placeholder="Search cinemas..."
             value={search}
